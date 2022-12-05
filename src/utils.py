@@ -1,9 +1,10 @@
 import matplotlib.pyplot as plt
 import torch
+from PIL import Image as PIL
 from torchvision import transforms
 
 
-def image_to_tensor(image, device=torch.device('cpu')):
+def image_to_tensor(image: PIL.Image, device: torch.device = torch.device('cpu')) -> torch.Tensor:
     '''Converts an image into a tensor (onto a device if specified).'''
     transform = transforms.Compose([
         transforms.ToTensor(),
@@ -15,7 +16,7 @@ def image_to_tensor(image, device=torch.device('cpu')):
     return transform(image).unsqueeze(0).to(device)
 
 
-def tensor_to_image(tensor):
+def tensor_to_image(tensor: torch.Tensor) -> PIL.Image:
     '''Converts a tensor into an image.'''
     transform = transforms.Compose([
         transforms.Lambda(lambda x: x.mul_(1. / 255.)),
@@ -34,7 +35,7 @@ def tensor_to_image(tensor):
     return transform(tmp)
 
 
-def display_image(image, size=(4, 4)):
+def display_image(image: PIL.Image, size: tuple[int, int] = (4, 4)) -> None:
     '''Visualizes an image.'''
     plt.figure(figsize=size)
     plt.imshow(image)
@@ -42,7 +43,7 @@ def display_image(image, size=(4, 4)):
     plt.show()
 
 
-def display_images(images, size=(8, 4)):
+def display_images(images: list[PIL.Image], size: tuple[int, int] = (8, 4)) -> None:
     '''Visualizes an image list.'''
     fig = plt.figure(figsize=size)
     for i in range(len(images)):
@@ -52,7 +53,7 @@ def display_images(images, size=(8, 4)):
     plt.show()
 
 
-def gram_matrix(input):
+def gram_matrix(input: torch.Tensor) -> torch.Tensor:
     '''Computes a Gram matrix.'''
     b, d, h, w = input.size()
     features = input.view(d, h * w)

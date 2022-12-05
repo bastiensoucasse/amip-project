@@ -46,8 +46,8 @@ if __name__ == '__main__':
         transforms.ToTensor(),
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ])
-    train_dataset = datasets.CIFAR10('data', train=True, transform=train_transform, download=False)
-    test_dataset = datasets.CIFAR10('data', train=False, transform=test_transform, download=False)
+    train_dataset = datasets.CIFAR10('data', train=True, transform=train_transform, download=True)
+    test_dataset = datasets.CIFAR10('data', train=False, transform=test_transform, download=True)
     train_data_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=2)
     test_data_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=2)
 

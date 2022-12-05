@@ -29,4 +29,4 @@ Host cremi_dl
 
 Everytime you want to work at distance, you must turn on the computer you use from [the CREMI WOL page](https://services.emi.u-bordeaux.fr/exam-test/?page=wol)—use the Night Work Startup Mode if you work past 11p.m.
 
-Then, simply connect from VSCode to your remote SSH Host. Don't forget to enable the environment on VSCode (interpreter at the bottom right) and on the terminal (`source /net/ens/DeepLearning-Pytorch/rtx_3060/bin/activate`).
+Then, simply connect from VSCode to your remote SSH Host and open your project folder. Don't forget to enable the environment on VSCode (interpreter at the bottom right) and on the terminal (`source /net/ens/DeepLearning-Pytorch/rtx_3060/bin/activate`).

@@ -20,10 +20,11 @@ if __name__ == "__main__":
     set14 = data_loader.load("set14", batch_size=4)
     bsd100 = data_loader.load("bsd100", batch_size=4)
 
-    # Define the image transformer.
-    image_transformer = ImageTransformNet().to(device)
+    # Define the image transformer (for training).
+    image_transformer = ImageTransformNet().to(device, torch.float)
     image_transformer_optimizer = torch.optim.Adam(image_transformer.parameters(), lr=1e-3)
 
-    # Define the VGG-16 model.
-    vgg16 = models.vgg16(weights=models.VGG16_Weights.DEFAULT)
-    vgg16_optimizer = torch.optim.Adam(vgg16.parameters(), lr=1e-3)
+    # Define the VGG-16 model (for feature loss).
+    vgg16 = models.vgg16(weights=models.VGG16_Weights.DEFAULT).to(device, torch.float)
+    for param in vgg16.parameters():
+        param.requires_grad = False

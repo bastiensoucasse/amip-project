@@ -1,6 +1,5 @@
-from torch.utils.data import DataLoader
-
 from datasets import load_dataset
+from torch.utils.data import DataLoader
 
 DATASETS: dict[str, str] = {
     "set5": "eugenesiow/Set5",

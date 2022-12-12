@@ -1,9 +1,10 @@
 import sys
 
 import torch
+from torchvision import models
 
 import data_loader
-import models
+from models import ImageTransformNet
 
 if __name__ == "__main__":
     # Retrieve name.
@@ -20,9 +21,9 @@ if __name__ == "__main__":
     bsd100 = data_loader.load("bsd100", batch_size=4)
 
     # Define the image transformer.
-    image_transformer = models.ImageTransformNet().to(device)
+    image_transformer = ImageTransformNet().to(device)
     image_transformer_optimizer = torch.optim.Adam(image_transformer.parameters(), lr=1e-3)
 
     # Define the VGG-16 model.
-    vgg16 = models.VGG16().to(device)
+    vgg16 = models.vgg16(weights=models.VGG16_Weights.DEFAULT)
     vgg16_optimizer = torch.optim.Adam(vgg16.parameters(), lr=1e-3)

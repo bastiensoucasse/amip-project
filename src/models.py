@@ -1,107 +1,91 @@
-from torch import nn
+import torch.nn as nn
+import torchvision.models as models
 
 
-class ConvLayer(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size, stride):
-        super(ConvLayer, self).__init__()
-        padding = kernel_size // 2
-        self.reflection_pad = nn.ReflectionPad2d(padding)
-        self.conv2d = nn.Conv2d(in_channels, out_channels, kernel_size, stride)
+class SuperResolutionLoss(nn.Module):
+    def __init__(self, use_pixel_loss: bool = False):
+        super(SuperResolutionLoss, self).__init__()
+
+        # Load the pre-trained VGG-16 model
+        vgg16 = models.vgg16(weights=models.VGG16_Weights.DEFAULT)
+
+        # Extract the layers of the VGG-16 model that we will use for feature loss computation
+        vgg_layers = list(vgg16.features)[:23]
+
+        self.vgg_layers = nn.Sequential(*vgg_layers)
+        self.mse_loss = nn.MSELoss()
+        self.use_pixel_loss = use_pixel_loss
+
+    def forward(self, generated_img, high_res_img):
+        # Extract the feature maps from the VGG-16 model for the high resolution reference image and the generated image
+        gen_features = self.vgg_layers(generated_img)
+        ref_features = self.vgg_layers(high_res_img)
+
+        # Compute the MSE between the feature maps as the feature loss
+        feature_loss = 0
+        for gen_f, ref_f in zip(gen_features, ref_features):
+            feature_loss += self.mse_loss(gen_f, ref_f)
+
+        # Return the feature loss if the improvement is not used
+        if not self.use_pixel_loss:
+            return feature_loss
+
+        # Compute the pixel-wise loss between the generated image and the high resolution reference image
+        pixel_loss = self.mse_loss(generated_img, high_res_img)
+
+        # Return the total loss
+        return feature_loss + pixel_loss
+
+
+class ImageTransformer(nn.Module):
+    def __init__(self, num_channels=3, num_filters=64, num_residual_blocks=16):
+        super(ImageTransformer, self).__init__()
+
+        # Initialize the input convolutional layer
+        self.conv1 = nn.Conv2d(in_channels=num_channels, out_channels=num_filters, kernel_size=3, stride=1, padding=1)
+
+        # Initialize the residual blocks
+        self.residual_blocks = nn.ModuleList([ResidualBlock(num_filters) for _ in range(num_residual_blocks)])
+
+        # Initialize the output convolutional layer
+        self.conv2 = nn.Conv2d(in_channels=num_filters, out_channels=num_channels, kernel_size=3, stride=1, padding=1)
 
     def forward(self, x):
-        out = self.reflection_pad(x)
-        out = self.conv2d(out)
-        return out
+        x = nn.Upsample(scale_factor=4, mode="nearest")(x)
 
+        # Apply the input convolutional layer
+        x = self.conv1(x)
 
-class UpsampleConvLayer(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size, stride, upsample=None):
-        super(UpsampleConvLayer, self).__init__()
-        self.upsample = upsample
-        if upsample:
-            self.upsample = nn.Upsample(scale_factor=upsample, mode='nearest')
-        reflection_padding = kernel_size // 2
-        self.reflection_pad = nn.ReflectionPad2d(reflection_padding)
-        self.conv2d = nn.Conv2d(in_channels, out_channels, kernel_size, stride)
+        # Apply the residual blocks
+        for residual_block in self.residual_blocks:
+            x = residual_block(x)
 
-    def forward(self, x):
-        if self.upsample:
-            x = self.upsample(x)
-        out = self.reflection_pad(x)
-        out = self.conv2d(out)
-        return out
+        # Apply the output convolutional layer
+        x = self.conv2(x)
+
+        return x
 
 
 class ResidualBlock(nn.Module):
-    def __init__(self, channels):
+    def __init__(self, num_filters):
         super(ResidualBlock, self).__init__()
-        self.conv1 = ConvLayer(channels, channels, kernel_size=3, stride=1)
-        self.in1 = nn.InstanceNorm2d(channels, affine=True)
-        self.relu = nn.ReLU()
-        self.conv2 = ConvLayer(channels, channels, kernel_size=3, stride=1)
-        self.in2 = nn.InstanceNorm2d(channels, affine=True)
+
+        # Initialize the convolutional layers
+        self.conv1 = nn.Conv2d(in_channels=num_filters, out_channels=num_filters, kernel_size=3, stride=1, padding=1)
+        self.conv2 = nn.Conv2d(in_channels=num_filters, out_channels=num_filters, kernel_size=3, stride=1, padding=1)
 
     def forward(self, x):
+        # Save the input to the residual block
         residual = x
-        out = self.relu(self.in1(self.conv1(x)))
-        out = self.in2(self.conv2(out))
-        out = out + residual
-        out = self.relu(out)
-        return out
 
+        # Apply the first convolutional layer
+        x = self.conv1(x)
+        x = nn.functional.relu(x)
 
-class ImageTransformNet(nn.Module):
-    def __init__(self):
-        super(ImageTransformNet, self).__init__()
+        # Apply the second convolutional layer
+        x = self.conv2(x)
 
-        # nonlineraity
-        self.relu = nn.ReLU()
-        self.tanh = nn.Tanh()
+        # Add the input to the output of the second convolutional layer
+        x += residual
 
-        # encoding layers
-        self.conv1 = ConvLayer(3, 32, kernel_size=9, stride=1)
-        self.in1_e = nn.InstanceNorm2d(32, affine=True)
-
-        self.conv2 = ConvLayer(32, 64, kernel_size=3, stride=2)
-        self.in2_e = nn.InstanceNorm2d(64, affine=True)
-
-        self.conv3 = ConvLayer(64, 128, kernel_size=3, stride=2)
-        self.in3_e = nn.InstanceNorm2d(128, affine=True)
-
-        # residual layers
-        self.res1 = ResidualBlock(128)
-        self.res2 = ResidualBlock(128)
-        self.res3 = ResidualBlock(128)
-        self.res4 = ResidualBlock(128)
-        self.res5 = ResidualBlock(128)
-
-        # decoding layers
-        self.deconv3 = UpsampleConvLayer(128, 64, kernel_size=3, stride=1, upsample=2)
-        self.in3_d = nn.InstanceNorm2d(64, affine=True)
-
-        self.deconv2 = UpsampleConvLayer(64, 32, kernel_size=3, stride=1, upsample=2)
-        self.in2_d = nn.InstanceNorm2d(32, affine=True)
-
-        self.deconv1 = UpsampleConvLayer(32, 3, kernel_size=9, stride=1)
-        self.in1_d = nn.InstanceNorm2d(3, affine=True)
-
-    def forward(self, x):
-        # encode
-        y = self.relu(self.in1_e(self.conv1(x)))
-        y = self.relu(self.in2_e(self.conv2(y)))
-        y = self.relu(self.in3_e(self.conv3(y)))
-
-        # residual layers
-        y = self.res1(y)
-        y = self.res2(y)
-        y = self.res3(y)
-        y = self.res4(y)
-        y = self.res5(y)
-
-        # decode
-        y = self.relu(self.in3_d(self.deconv3(y)))
-        y = self.relu(self.in2_d(self.deconv2(y)))
-        # y = self.tanh(self.in1_d(self.deconv1(y)))
-        y = self.deconv1(y)
-
-        return y
+        return x

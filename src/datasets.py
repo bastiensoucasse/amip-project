@@ -18,7 +18,9 @@ class SuperResolutionDataset(torchvision.datasets.VisionDataset):
         transform (callable, optional): Optional transform to be applied to the high-resolution images.
     """
 
-    def __init__(self, root_dir: str, scaling_factor: int, transform: Optional[Callable] = None) -> None:
+    TRAIN_DATA_URL = "https://data.vision.ee.ethz.ch/cvl/DIV2K/DIV2K_train_HR.zip"
+
+    def __init__(self, root_dir: str, scaling_factor: int, transform: Optional[Callable] = None, force_download: bool = False) -> None:
         # Save parameters
         self.root_dir = root_dir
         self.scaling_factor = scaling_factor
@@ -26,13 +28,16 @@ class SuperResolutionDataset(torchvision.datasets.VisionDataset):
 
         # Load the list of image file names
         self.images = self.load_data()
+        if len(self.images) == 0 or force_download:
+            self.download()
+            self.images = self.load_data()
 
     def __len__(self) -> int:
         """Returns the length of the dataset, which is equal to the number of image file names."""
 
         return len(self.images)
 
-    def __getitem__(self, idx) -> tuple[torch.Tensor, torch.Tensor]:
+    def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor]:
         """Generates a low-resolution and high-resolution image pair for the given index.
 
         Args:
@@ -68,15 +73,23 @@ class SuperResolutionDataset(torchvision.datasets.VisionDataset):
         # Return the low-resolution and high-resolution images
         return lr_img, hr_img
 
-    def load_data(self) -> list:
+    def load_data(self) -> list[str]:
         """Loads the list of image file names from the root directory."""
 
-        # Load the list of image file names
         images = []
         for file in os.listdir(self.root_dir):
-            # Handle unwanted files
-            if file in ['.DS_Store']:
-                break
-
+            if not file.endswith(".png"):
+                continue
             images.append(file)
         return images
+
+    def download(self) -> None:
+        """Downloads the dataset from the web."""
+
+        # Create root dir
+        os.makedirs(self.root_dir, exist_ok=True)
+
+        # Download train data
+        url = SuperResolutionDataset.TRAIN_DATA_URL
+        print(f"Downloading \"{url}\"")
+        os.system(f"(cd {self.root_dir} && curl {url} -o train.zip && unzip train.zip && mv DIV2K_train_HR/*.png . && rm -rf DIV2K_train_HR train.zip) &>/dev/null")

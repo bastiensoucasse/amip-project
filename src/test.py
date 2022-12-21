@@ -48,14 +48,6 @@ def sr_test(name: str, scaling_factor: int, input: str) -> tuple[Image.Image, Im
         # Open the input image
         lr_img = Image.open(input).convert("RGB")
 
-        # Crop the input image to a centered sub-part of size 288x288
-        width, height = lr_img.size
-        left = (width - 288) // 2
-        top = (height - 288) // 2
-        right = (width + 288) // 2
-        bottom = (height + 288) // 2
-        lr_img = lr_img.crop((left, top, right, bottom))
-
         # Pre-process the input image
         lr_img = pre_transform(lr_img)
 
@@ -98,7 +90,7 @@ if __name__ == "__main__":
     # Save the images
     output_dir = "output"
     output_dir = f"{output_dir}/{name}/{Path(input).stem}"
-    Path(output_dir).mkdir(parents=True, exist_ok=False)
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
     lr_img.save(f"{output_dir}/lr_img.jpg")
     gen_img.save(f"{output_dir}/gen_img.jpg")
     print(f"Low resolution and generated images for \"{input}\" saved\".")

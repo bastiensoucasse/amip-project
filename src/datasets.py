@@ -26,9 +26,15 @@ class SuperResolutionDataset(torchvision.datasets.VisionDataset):
         self.scaling_factor = scaling_factor
         self.transform = transform
 
-        # Load the list of image file names
+        # Force download and load data
+        if force_download or not os.path.exists(root_dir):
+            self.download()
+            self.images = self.load_data()
+            return
+
+        # Load data and download only if needed
         self.images = self.load_data()
-        if len(self.images) == 0 or force_download:
+        if len(self.images) == 0:
             self.download()
             self.images = self.load_data()
 
@@ -91,5 +97,5 @@ class SuperResolutionDataset(torchvision.datasets.VisionDataset):
 
         # Download train data
         url = SuperResolutionDataset.TRAIN_DATA_URL
-        print(f"Downloading \"{url}\"")
+        print(f"Downloading {url}")
         os.system(f"(cd {self.root_dir} && curl {url} -o train.zip && unzip train.zip && mv DIV2K_train_HR/*.png . && rm -rf DIV2K_train_HR train.zip) &>/dev/null")

@@ -83,7 +83,7 @@ def sr_test(name: str, scaling_factor: int, input: str) -> tuple[Image.Image, Im
 if __name__ == "__main__":
     # Check if the correct number of command line arguments are provided
     if len(sys.argv) != 4:
-        print(f"Train a super resolution model.")
+        print(f"Test a super resolution model.")
         print(f"Usage: {sys.argv[0]} <name> <scaling_factor> <input>")
         exit(-1)
 
@@ -96,8 +96,9 @@ if __name__ == "__main__":
     lr_img, gen_img = sr_test(name, scaling_factor, input)
 
     # Save the images
-    output_dir = f"output/{input}"
-    Path(f"{output_dir}").mkdir(parents=True, exist_ok=True)
+    output_dir = "output"
+    output_dir = f"{output_dir}/{name}/{Path(input).stem}"
+    Path(output_dir).mkdir(parents=True, exist_ok=False)
     lr_img.save(f"{output_dir}/lr_img.jpg")
     gen_img.save(f"{output_dir}/gen_img.jpg")
     print(f"Low resolution and generated images for \"{input}\" saved\".")

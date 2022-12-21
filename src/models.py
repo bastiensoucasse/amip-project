@@ -14,7 +14,7 @@ class SuperResolutionLoss(nn.Module):
         vgg_layers = list(vgg16.features)[:23]
 
         self.vgg_layers = nn.Sequential(*vgg_layers)
-        self.mse_loss = nn.MSELoss()
+        self.criterion = nn.MSELoss()
         self.use_pixel_loss = use_pixel_loss
 
     def forward(self, gen_img: torch.Tensor, hr_img: torch.Tensor) -> nn.MSELoss:
@@ -25,14 +25,14 @@ class SuperResolutionLoss(nn.Module):
         # Compute the MSE between the feature maps as the feature loss
         feature_loss = 0
         for gen_f, hr_f in zip(gen_features, hr_features):
-            feature_loss += self.mse_loss(gen_f, hr_f)
+            feature_loss += self.criterion(gen_f, hr_f)
 
         # Return the feature loss if the improvement is not used
         if not self.use_pixel_loss:
             return feature_loss
 
         # Compute the pixel-wise loss between the generated image and the high resolution reference image
-        pixel_loss = self.mse_loss(gen_img, hr_img)
+        pixel_loss = self.criterion(gen_img, hr_img)
 
         # Return the total loss
         return feature_loss + pixel_loss

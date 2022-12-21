@@ -50,6 +50,9 @@ def sr_train(name: str, scaling_factor: int, use_pixel_loss: bool = False, num_e
     # Define the super resolution loss function
     super_resolution_loss = SuperResolutionLoss(use_pixel_loss=use_pixel_loss).to(device)
 
+    # Start the training
+    training_time = time.time()
+
     # Iterate over the number of epochs
     for epoch in range(num_epochs):
         # Print the epoch and start the epoch
@@ -80,6 +83,12 @@ def sr_train(name: str, scaling_factor: int, use_pixel_loss: bool = False, num_e
 
         # Print the epoch summary
         print(f"{epoch_time:.2f}s - loss: {loss.item():.4f}")
+
+    # Compute the training time
+    training_time = time.time() - training_time
+
+    # Print the training summary
+    print(f"Trainig done in {training_time:.2f}s.")
 
     # Save the trained model
     models_dir = "models"

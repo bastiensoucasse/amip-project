@@ -74,5 +74,9 @@ class SuperResolutionDataset(torchvision.datasets.VisionDataset):
         # Load the list of image file names
         images = []
         for file in os.listdir(self.root_dir):
+            # Handle unwanted files
+            if file in ['.DS_Store']:
+                break
+
             images.append(file)
         return images

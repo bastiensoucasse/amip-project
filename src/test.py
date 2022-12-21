@@ -61,7 +61,7 @@ def sr_test(name: str, scaling_factor: int, input: str) -> tuple[Image.Image, Im
 
         # Generate the low-resolution image by blurring and downsampling the high-resolution image
         lr_img = gaussian_blur(lr_img, 3, 1)
-        lr_img = avg_pool2d(lr_img, kernel_size=4, stride=4)
+        lr_img = avg_pool2d(lr_img, kernel_size=scaling_factor, stride=scaling_factor)
 
         # Move data to the device
         lr_img = lr_img.unsqueeze(0).to(device)

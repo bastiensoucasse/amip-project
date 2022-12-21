@@ -73,7 +73,6 @@
 
     % In this report, we present and explain the method used in the model, describe any implementation difficulties that we encountered, and analyze the qualitative and quantitative results of the experiments. We also discuss the energy consumption used during the project and consider other possible impacts. Finally, we suggest possible extensions and future directions for this work.
 
-
 }
 
 % Method
@@ -81,16 +80,15 @@
     \section{Method}
     \label{sec:method}
 
-        % TODO: make a new figure with only super resolution
         \begin{figure*}[ht]
             \centering
-            \includegraphics[width=6cm]{images/model.png}
+            \includegraphics[width=\textwidth]{images/model.png}
             \caption{Overview of the architecture of the proposed model in~\cite{https://doi.org/10.48550/arxiv.1603.08155}, focused on the Super-Resolution part.}
             \label{fig:model}
         \end{figure*}
 
 
-        The proposed model consists of two components: an image transformation network $f_W$ and a loss network $\phi$ (see Fig~\ref{fig:model}). 
+        The proposed model illustrated in Fig~\ref{fig:model} consists of two components: an image transformation network $f_W$ and a loss network $\phi$. Given a low resolution input image $x$, it generates an output image that is expected to be similar to the ground truth high resolution image $y$.
         
         The image transformation network is a deep residual convolutional neural network with a set of weights parameter denoted $W$. From input images $x$, it provides output images $\hat y$. 
         
@@ -100,14 +98,14 @@
 
         \bigskip
         
-        Gathering both components, the image transformation network adjusts its weights $W$ by minimizing the combination of those loss functions by using stochastic gradient descent~\ref{SGD}. Note that the formula given in the paper~\cite{https://doi.org/10.48550/arxiv.1603.08155} mentions a "weighted combination of loss functions" but does not provide more information about the aforementioned weights. As a consequence, we decided to set them all to 1.
+        Gathering both components, the image transformation network adjusts its weights $W$ by minimizing the combination of those loss functions, using stochastic gradient descent~\ref{SGD}. Note that the formula given in the paper~\cite{https://doi.org/10.48550/arxiv.1603.08155} mentions a "weighted combination of loss functions" but does not provide more information about the aforementioned weights. As a consequence, we decided to set them all to 1.
         %--it only uses small batch of data to compute the update step at each iteration instead of the average of the gradients in a classic gradient descent.
 
         \begin{equation}
             W^* = 
                 \text{argmin}_W \textbf{E}_{x,y_i}
                 \biggl[
-                    \sum_{i=0} l_i(f_W(x), y_i)
+                    \sum_{i=0} l^{\phi, i}_{feat}(f_W(x), y_i)
                 \biggr]
             \label{SGD}
         \end{equation}
@@ -116,7 +114,7 @@
         \subsection{Image Transfomation Network}
         \label{subsec:image-transform-net}
 
-        % --it includes residual blocks that prevent vanishing gradient issues-- 
+        % As mentioned previously, the image transformation network is a deep residual convolutional neural network. That is, it includes residual blocks that prevent vanishing gradient issues--when the gradients of the parameters become very small, hindering the ability of the network to learn and improve.
 
         …
 
@@ -124,9 +122,20 @@
         \subsection{Loss Network}
         \label{subsec:loss-net}
 
-        …
+        What propose J. Johnson et al. is to try and make the images have similar feature representations, instead of forcing a pixel-per-pixel match. To do so and with the intention of making it more performant, the loss network is here defined as a pre-trained network for image classification. More specifically, they use the 16-layer VGG network~\ref{vgg} pretrained on the ImageNet dataset~\ref{image-net}. 
 
-    …
+        Now to compute the feature reconstruction loss $l^{\phi, i}_{feat}$ in~\ref{SGD} between the output $\hat y$ and the content target $y$ at a layer $i$, we use the mean square Euclidean distance such as equation~ref{loss-formula}.
+
+        \begin{equation}
+            l^{\phi, i}_{feat}(f_W(x), y_i) = 
+                \frac{1}{C_i H_i W_i}
+                \lVert 
+                    \phi_i (\hat y) - \phi_i (y)
+                \rVert_2^2
+            \label{loss-formula}
+        \end{equation}
+
+        Note that $C_i$, $H_i$ and $W_i$ are respectively the number of channels, height and width of the input image. And, $\phi_i (x)$ is the feature representation of $x$ at layer $i$ (here, $x$ does not mean the input image, but an arbitrary image).
 }
 
 % Implementation

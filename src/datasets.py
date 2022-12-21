@@ -32,7 +32,7 @@ class SuperResolutionDataset(torchvision.datasets.VisionDataset):
 
         return len(self.images)
 
-    def __getitem__(self, idx) -> tuple[torch.Tensor, torch.Tensor]:
+    def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor]:
         """Generates a low-resolution and high-resolution image pair for the given index.
 
         Args:
@@ -68,7 +68,7 @@ class SuperResolutionDataset(torchvision.datasets.VisionDataset):
         # Return the low-resolution and high-resolution images
         return lr_img, hr_img
 
-    def load_data(self) -> list:
+    def load_data(self) -> list[str]:
         """Loads the list of image file names from the root directory."""
 
         # Load the list of image file names

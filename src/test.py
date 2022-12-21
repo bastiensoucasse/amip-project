@@ -8,9 +8,10 @@ from torch.nn.functional import avg_pool2d
 from torchvision.transforms.functional import gaussian_blur
 
 from models import ImageTransformer
+from environment import OUTPUT_DIR
 
 
-def sr_test(name: str, scaling_factor: int, input: str) -> tuple[Image.Image, Image.Image]:
+def sr_test(name: str, scaling_factor: int, input: str) -> "tuple[Image.Image, Image.Image]":
     """
     Test a super resolution model.
 
@@ -26,7 +27,7 @@ def sr_test(name: str, scaling_factor: int, input: str) -> tuple[Image.Image, Im
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         else:
             device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
-        print(f"Using {device.type}.")
+        print(f"Device: {device.type}")
 
         # Set up the data pre-processing
         pre_transform = transforms.Compose([
@@ -75,7 +76,7 @@ def sr_test(name: str, scaling_factor: int, input: str) -> tuple[Image.Image, Im
 if __name__ == "__main__":
     # Check if the correct number of command line arguments are provided
     if len(sys.argv) != 4:
-        print(f"Test a super resolution model.")
+        print(f"Test a super resolution model")
         print(f"Usage: {sys.argv[0]} <name> <scaling_factor> <input>")
         exit(-1)
 
@@ -88,9 +89,8 @@ if __name__ == "__main__":
     lr_img, gen_img = sr_test(name, scaling_factor, input)
 
     # Save the images
-    output_dir = "output"
-    output_dir = f"{output_dir}/{name}/{Path(input).stem}"
+    output_dir = f"{OUTPUT_DIR}/{name}/{Path(input).stem}"
     Path(output_dir).mkdir(parents=True, exist_ok=True)
     lr_img.save(f"{output_dir}/lr_img.jpg")
     gen_img.save(f"{output_dir}/gen_img.jpg")
-    print(f"Low resolution and generated images for \"{input}\" saved\".")
+    print(f"Low resolution and generated images for \"{input}\" saved")

@@ -43,7 +43,7 @@ class SuperResolutionDataset(torchvision.datasets.VisionDataset):
 
         return len(self.images)
 
-    def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor]:
+    def __getitem__(self, idx: int) -> "tuple[torch.Tensor, torch.Tensor]":
         """Generates a low-resolution and high-resolution image pair for the given index.
 
         Args:
@@ -79,7 +79,7 @@ class SuperResolutionDataset(torchvision.datasets.VisionDataset):
         # Return the low-resolution and high-resolution images
         return lr_img, hr_img
 
-    def load_data(self) -> list[str]:
+    def load_data(self) -> "list[str]":
         """Loads the list of image file names from the root directory."""
 
         images = []
@@ -97,5 +97,5 @@ class SuperResolutionDataset(torchvision.datasets.VisionDataset):
 
         # Download train data
         url = SuperResolutionDataset.TRAIN_DATA_URL
-        print(f"Downloading {url}")
+        print(f"Downloading: \"{url}\" to {self.root_dir}")
         os.system(f"(cd {self.root_dir} && curl {url} -o train.zip && unzip train.zip && mv DIV2K_train_HR/*.png . && rm -rf DIV2K_train_HR train.zip) &>/dev/null")

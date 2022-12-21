@@ -65,6 +65,8 @@
 
     Johnson~et~al.~\cite{https://doi.org/10.48550/arxiv.1603.08155} introduced a model…
 
+    % Say that we'll only focus on the super resolution part
+
     % Super-resolution techniques are used to reconstruct high-resolution images from low-resolution versions. These methods have a wide range of applications, including image processing, computer vision, and medical imaging. In this report, we describe the implementation and evaluation of a super resolution model that utilizes perceptual losses. This approach was introduced in the paper "Perceptual Losses for Real-Time Style Transfer and Super-Resolution" by J. Johnson et al. Perceptual losses are designed to capture the high-level features of images and maintain the perceptual quality of the recovered images.
 
     % To train the model, we used a dataset of high-resolution images. We implemented the model and used this dataset for training.
@@ -74,11 +76,62 @@
 
 }
 
-% Method Implementation
+% Method
 {
-    \section{Method Implementation}
-    \label{sec:method-implementation}
+    \section{Method}
+    \label{sec:method}
 
+        % TODO: make a new figure with only super resolution
+        \begin{figure*}[ht]
+            \centering
+            \includegraphics[width=6cm]{images/model.png}
+            \caption{Overview of the architecture of the proposed model in~\cite{https://doi.org/10.48550/arxiv.1603.08155}, focused on the Super-Resolution part.}
+            \label{fig:model}
+        \end{figure*}
+
+
+        The proposed model consists of two components: an image transformation network $f_W$ and a loss network $\phi$ (see Fig~\ref{fig:model}). 
+        
+        The image transformation network is a deep residual convolutional neural network with a set of weights parameter denoted $W$. From input images $x$, it provides output images $\hat y$. 
+        
+        The loss network defines a feature reconstruction loss $l^\phi_{feat}$. It actually delineates several feature reconstruction loss functions $l^{\phi, i}_{feat}(\hat y, y_i)$ that each measures the difference in content between output image $\hat y$ and content target images $y_i$. Here, $i$ denotes the layer.
+        % I didn't precise "yc" (which makes the difference with ys for style) because we only measure content difference in our case. Could be modified if you think it's necessary.
+        Furthemore, J. Johnson et al. ~\cite{https://doi.org/10.48550/arxiv.1603.08155} drew inspiration from several papers such as~\cite{gatys} in order to make the most of their feature reconstruction loss. The principle is to use a network pretrained for image classification as a loss network. This way, the beforehand learning of the perceptual and semantic information will facilitate the measure computation of the feature reconstruction loss. 
+
+        \bigskip
+        
+        Gathering both components, the image transformation network adjusts its weights $W$ by minimizing the combination of those loss functions by using stochastic gradient descent~\ref{SGD}. Note that the formula given in the paper~\cite{https://doi.org/10.48550/arxiv.1603.08155} mentions a "weighted combination of loss functions" but does not provide more information about the aforementioned weights. As a consequence, we decided to set them all to 1.
+        %--it only uses small batch of data to compute the update step at each iteration instead of the average of the gradients in a classic gradient descent.
+
+        \begin{equation}
+            W^* = 
+                \text{argmin}_W \textbf{E}_{x,y_i}
+                \biggl[
+                    \sum_{i=0} l_i(f_W(x), y_i)
+                \biggr]
+            \label{SGD}
+        \end{equation}
+
+
+        \subsection{Image Transfomation Network}
+        \label{subsec:image-transform-net}
+
+        % --it includes residual blocks that prevent vanishing gradient issues-- 
+
+        …
+
+
+        \subsection{Loss Network}
+        \label{subsec:loss-net}
+
+        …
+
+    …
+}
+
+% Implementation
+\label{sec:implementation}
+{
     …
 }
 
@@ -88,29 +141,35 @@
     \label{sec:experiments}
 
         \subsection{Set up}
+        \label{subsec:setup}
 
         In order to conduct experiments, we first need a dataset to train our model. The original paper~\cite{https://doi.org/10.48550/arxiv.1603.08155} used the MS COCO dataset \cite{mscoco} for training, but due to its large size and the associated training time, we had to find a more adequate dataset.
         
-        As an alternative, we chose DIV2K, a dataset introduced in 2017 by Agustsson et al. in the technical report \textit{"NTIRE 2017 Challenge on Single Image Super-Resolution: Dataset and Study"} ~\cite{div2k-ds}. DIV2K is a widely-used dataset for super resolution tasks containing 1000 pairs of low resolution (LR) and high resolution (HR) images. Compared to the MS COCO dataset, it has a reasonable size, making it more feasible for use in this study. More specifically, we only used the HR Images Train Data, which contains 800 images of variable sizes. An extract is visualizable in Fig.~\ref{fig:div2k-train}.
+        As an alternative, we chose DIV2K, a dataset introduced in 2017 by Agustsson et al. in the technical report \textit{"NTIRE 2017 Challenge on Single Image Super-Resolution: Dataset and Study"}~\cite{div2k-ds}. DIV2K is a widely-used dataset for super resolution tasks containing 1000 pairs of low resolution (LR) and high resolution (HR) images. Compared to the MS COCO dataset, it has a reasonable size, making it more feasible for use in this study. More specifically, we only used the HR Images Train Data, which contains 800 images of variable sizes. An extract is visualizable in Fig~\ref{fig:div2k-train-og}.
 
         \bigskip
 
         As the model needs a specific type of training data, we did not use the LR images of DIV2K. Indeed, we decided to process the HR images to create our HR-LR pairs. %Furthermore, it allows to store fewer images?
 
-        To do so, the HR images were preprocessed according to the methods described in ~\cite{https://doi.org/10.48550/arxiv.1603.08155}. It includes cropping to $288 \times 288$, blurring with a Gaussian kernel of width $\sigma = 1.0$, and downsampling with bicubic interpolation.
+        To do so, the original HR images were cropped to $288 \times 288$ to create the HR patches. Then they were preprocessed according to the methods described in ~\cite{https://doi.org/10.48550/arxiv.1603.08155}, to create the LR corresponding patches. It also includes cropping to $288 \times 288$, along with blurring with a Gaussian kernel of width $\sigma = 1.0$, and downsampling with bicubic interpolation.
         
-        Now that the dataset has been preprocessed, the model and prepared dataset are now ready to be used for training.
+        Now that the dataset has been preprocessed (see extract in Fig~\ref{div2k-train-pair}), the model and prepared dataset are now ready to be used for training.
 
         \begin{figure*}[ht]
             \centering
-            \includegraphics[width=\textwidth]{images/DIV2K_HR.png}
-            \includegraphics[width=\textwidth]{images/DIV2K_HR.png}
-            \caption{Visualization of 25 DIV2K HR train images, and their LR version processed by us.}
-            \label{fig:div2k-train}
+            \includegraphics[width=6cm]{images/DIV2K_HR.png}
+            \caption{Visualization of 25 DIV2K HR train images.}
+            \label{fig:div2k-train-og}
+        \end{figure*}
+
+        \begin{figure*}[ht]
+            \centering
+            \includegraphics[width=6cm]{images/DIV2K_HRLR.png}
+            \caption{Visualization of 5 pairs of DIV2K HR train images and their LR corresponding images, that underwent our preprocessing.}
+            \label{fig:div2k-train-pair}
         \end{figure*}
         % TODO: create such extracts
 
-        % In order to conduct experiments on the super resolution part of the model introduced in the paper "Perceptual Losses for Real-Time Style Transfer and Super-Resolution" by J. Johnson et al., the model was implemented and the DIV2K dataset was prepared for use in training. The original paper used the MS COCO dataset for training, but due to its large size and the associated training time, the DIV2K dataset was selected as an alternative. The DIV2K dataset was chosen because it is a widely-used dataset for super resolution tasks and has a reasonable size, making it more feasible for use in this study. The DIV2K dataset was preprocessed according to the methods described in the paper, including cropping to 288x288, blurring with a Gaussian kernel of width 1, and downsampling with bicubic interpolation. The resulting preprocessed dataset was then loaded into the PyTorch program using the appropriate dataset and dataloader classes. With the model and prepared dataset in place, experiments on the super resolution part of the model can now be carried out.
         
     …
 }
@@ -137,3 +196,4 @@
 }
 
 \end{document}
+

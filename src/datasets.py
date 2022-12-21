@@ -1,6 +1,7 @@
 import os
 from typing import Callable, Optional
 
+import torch
 import torch.nn.functional as F
 import torchvision
 import torchvision.transforms as transforms
@@ -13,27 +14,25 @@ class SuperResolutionDataset(torchvision.datasets.VisionDataset):
 
     Args:
         root_dir (str): Root directory of the dataset.
+        scaling_factor (int): Factor of downsampling (should be 4 or 8).
         transform (callable, optional): Optional transform to be applied to the high-resolution images.
-        scaling_factor (int, optional): Factor of downsampling (should be 4 or 8). 
     """
 
-    def __init__(self, root_dir: str, transform: Optional[Callable] = None, scaling_factor: int = 4):
+    def __init__(self, root_dir: str, scaling_factor: int, transform: Optional[Callable] = None) -> None:
+        # Save parameters
         self.root_dir = root_dir
+        self.scaling_factor = scaling_factor
         self.transform = transform
-        self.kernel_size = 3
-        self.sigma = 1
-        self.pool_size = scaling_factor
-        self.stride = scaling_factor
 
         # Load the list of image file names
         self.images = self.load_data()
 
-    def __len__(self):
+    def __len__(self) -> int:
         """Returns the length of the dataset, which is equal to the number of image file names."""
 
         return len(self.images)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx) -> tuple[torch.Tensor, torch.Tensor]:
         """Generates a low-resolution and high-resolution image pair for the given index.
 
         Args:
@@ -45,31 +44,31 @@ class SuperResolutionDataset(torchvision.datasets.VisionDataset):
 
         # Load the image at the given index
         img_path = os.path.join(self.root_dir, self.images[idx])
-        high_res_img = Image.open(img_path).convert("RGB")
+        hr_img = Image.open(img_path).convert("RGB")
 
         # Crop the image to a centered sub-part of size 288x288
-        width, height = high_res_img.size
+        width, height = hr_img.size
         left = (width - 288) // 2
         top = (height - 288) // 2
         right = (width + 288) // 2
         bottom = (height + 288) // 2
-        high_res_img = high_res_img.crop((left, top, right, bottom))
+        hr_img = hr_img.crop((left, top, right, bottom))
 
         # Apply the transform to the high-resolution image, if specified
         if self.transform is not None:
-            high_res_img = self.transform(high_res_img)
+            hr_img = self.transform(hr_img)
         else:
-            high_res_img = transforms.ToTensor()(high_res_img)
+            hr_img = transforms.ToTensor()(hr_img)
 
         # Generate the low-resolution image by blurring and downsampling the high-resolution image
-        low_res_img = high_res_img.clone()
-        low_res_img = gaussian_blur(low_res_img, self.kernel_size, self.sigma)
-        low_res_img = F.avg_pool2d(low_res_img, kernel_size=self.pool_size, stride=self.stride)
+        lr_img = hr_img.clone()
+        lr_img = gaussian_blur(lr_img, 3, 1)
+        lr_img = F.avg_pool2d(lr_img, kernel_size=self.scaling_factor, stride=self.scaling_factor)
 
         # Return the low-resolution and high-resolution images
-        return low_res_img, high_res_img
+        return lr_img, hr_img
 
-    def load_data(self):
+    def load_data(self) -> list:
         """Loads the list of image file names from the root directory."""
 
         # Load the list of image file names

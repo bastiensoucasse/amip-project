@@ -1,47 +1,51 @@
 \documentclass{article}
-\usepackage[colorlinks=true, citecolor=teal, linkcolor=Periwinkle, urlcolor=Periwinkle]{hyperref}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage[authoryear,round]{natbib}
+\usepackage[colorlinks=true,citecolor=teal, linkcolor=Periwinkle,urlcolor=Periwinkle]{hyperref}
 \usepackage[dvipsnames]{xcolor}
 \usepackage{graphicx}
-
-\linespread{1.15}
-\bibliographystyle{ieeetr}
+\usepackage{amsmath}
 
 \title{Perceptual Losses for Real-Time Style~Transfer and~Super-Resolution}
 \author{Iantsa~Provost, Lilian~Rebiere, Bastien~Soucasse, and~Alexey~Zhukov}
 \date{January~5, 2022}
 
+\linespread{1.15}
+\bibliographystyle{abbrvnat}
+
 \begin{document}
 
-% Title page
+% Title Page
 {
     \begin{titlepage}
         \begin{center}
             \vspace*{1.5cm}
-            
+
             \Large
-            
+
             \textbf{Perceptual Losses for Real-Time Style~Transfer and~Super-Resolution}
-            
+
             \vspace{.5cm}
-            
+
             \vspace{1.5cm}
-            
+
             \large
-            
+
             \textbf{Iantsa~Provost, Lilian~Rebiere, Bastien~Soucasse, and~Alexey~Zhukov}
-            
+
             \vfill
-            
+
             \normalsize
-            
+
             Presented as part of the\\
             \textit{AMIP}\\
             course unit.
-            
+
             \vspace{1.5cm}
-            
+
             \includegraphics[width=.5\textwidth]{images/college-logo.jpg}
-            
+
             Computer~Science~Master's~Degree in~Image~and~Sound\\
             Université~de~Bordeaux,~France\\
             January~5,~2022
@@ -63,7 +67,7 @@
     \section{Introduction}
     \label{sec:introduction}
 
-    Johnson~et~al.~\cite{https://doi.org/10.48550/arxiv.1603.08155} introduced a model…
+    \cite{sr} introduced a model…
 
     % Say that we'll only focus on the super resolution part
 
@@ -72,7 +76,6 @@
     % To train the model, we used a dataset of high-resolution images. We implemented the model and used this dataset for training.
 
     % In this report, we present and explain the method used in the model, describe any implementation difficulties that we encountered, and analyze the qualitative and quantitative results of the experiments. We also discuss the energy consumption used during the project and consider other possible impacts. Finally, we suggest possible extensions and future directions for this work.
-
 }
 
 % Method
@@ -80,67 +83,66 @@
     \section{Method}
     \label{sec:method}
 
-        \begin{figure*}[ht]
-            \centering
-            \includegraphics[width=\textwidth]{images/model.png}
-            \caption{Overview of the architecture of the proposed model in~\cite{https://doi.org/10.48550/arxiv.1603.08155}, focused on the Super-Resolution part.}
-            \label{fig:model}
-        \end{figure*}
+    \begin{figure*}[ht]
+        \centering
+        \includegraphics[width=\textwidth]{images/model.png}
+        \caption{Overview of the architecture of the proposed model \citep{sr}, focused on the Super-Resolution part.}
+        \label{fig:model}
+    \end{figure*}
 
+    The proposed model illustrated in Figure~\ref{fig:model} consists of two components: an image transformation network $f_W$ and a loss network $\phi$. Given a low resolution input image $x$, it generates an output image that is expected to be similar to the ground truth high resolution image $y$.
 
-        The proposed model illustrated in Fig~\ref{fig:model} consists of two components: an image transformation network $f_W$ and a loss network $\phi$. Given a low resolution input image $x$, it generates an output image that is expected to be similar to the ground truth high resolution image $y$.
-        
-        The image transformation network is a deep residual convolutional neural network with a set of weights parameter denoted $W$. From input images $x$, it provides output images $\hat y$. 
-        
-        The loss network defines a feature reconstruction loss $l^\phi_{feat}$. It actually delineates several feature reconstruction loss functions $l^{\phi, i}_{feat}(\hat y, y_i)$ that each measures the difference in content between output image $\hat y$ and content target images $y_i$. Here, $i$ denotes the layer.
-        % I didn't precise "yc" (which makes the difference with ys for style) because we only measure content difference in our case. Could be modified if you think it's necessary.
-        Furthemore, J. Johnson et al. ~\cite{https://doi.org/10.48550/arxiv.1603.08155} drew inspiration from several papers such as~\cite{gatys} in order to make the most of their feature reconstruction loss. The principle is to use a network pretrained for image classification as a loss network. This way, the beforehand learning of the perceptual and semantic information will facilitate the measure computation of the feature reconstruction loss. 
+    The image transformation network is a deep residual convolutional neural network with a set of weights parameter denoted $W$. From input images $x$, it provides output images $\hat y$.
 
-        \bigskip
-        
-        Gathering both components, the image transformation network adjusts its weights $W$ by minimizing the combination of those loss functions, using stochastic gradient descent~\ref{SGD}. Note that the formula given in the paper~\cite{https://doi.org/10.48550/arxiv.1603.08155} mentions a "weighted combination of loss functions" but does not provide more information about the aforementioned weights. As a consequence, we decided to set them all to 1.
-        %--it only uses small batch of data to compute the update step at each iteration instead of the average of the gradients in a classic gradient descent.
+    The loss network defines a feature reconstruction loss $l^\phi_{feat}$. It actually delineates several feature reconstruction loss functions $l^{\phi, i}_{feat}(\hat y, y_i)$ that each measures the difference in content between output image $\hat y$ and content target images $y_i$. Here, $i$ denotes the layer.
+    % I didn't precise "yc" (which makes the difference with ys for style) because we only measure content difference in our case. Could be modified if you think it's necessary.
+    Furthermore, \cite{sr} drew inspiration from several papers such as the one by \cite{gatys} in order to make the most of their feature reconstruction loss. The principle is to use a network pretrained for image classification as a loss network. This way, the beforehand learning of the perceptual and semantic information will facilitate the measure computation of the feature reconstruction loss.
 
-        \begin{equation}
-            W^* = 
-                \text{argmin}_W \textbf{E}_{x,y_i}
-                \biggl[
-                    \sum_{i=0} l^{\phi, i}_{feat}(f_W(x), y_i)
-                \biggr]
-            \label{SGD}
-        \end{equation}
+    \bigskip
 
+    Gathering both components, the image transformation network adjusts its weights $W$ by minimizing the combination of those loss functions, using stochastic gradient descent (Equation~\ref{eq:sgd}). Note that the formula given in the paper \citep{sr} mentions a “weighted combination of loss functions” but does not provide more information about the aforementioned weights. As a consequence, we decided to set them all to 1.
+    %--it only uses small batch of data to compute the update step at each iteration instead of the average of the gradients in a classic gradient descent.
 
-        \subsection{Image Transfomation Network}
-        \label{subsec:image-transform-net}
+    \begin{equation}
+        W^* =
+        \text{argmin}_W \textbf{E}_{x,y_i}
+        \biggl[
+            \sum_{i=0} l^{\phi, i}_{feat}(f_W(x), y_i)
+            \biggr]
+        \label{eq:sgd}
+    \end{equation}
 
-        % As mentioned previously, the image transformation network is a deep residual convolutional neural network. That is, it includes residual blocks that prevent vanishing gradient issues--when the gradients of the parameters become very small, hindering the ability of the network to learn and improve.
+    \subsection{Image Transfomation Network}
+    \label{subsec:image-transform-net}
 
-        …
+    % As mentioned previously, the image transformation network is a deep residual convolutional neural network. That is, it includes residual blocks that prevent vanishing gradient issues--when the gradients of the parameters become very small, hindering the ability of the network to learn and improve.
 
+    …
 
-        \subsection{Loss Network}
-        \label{subsec:loss-net}
+    \subsection{Loss Network}
+    \label{subsec:loss-net}
 
-        What propose J. Johnson et al. is to try and make the images have similar feature representations, instead of forcing a pixel-per-pixel match. To do so and with the intention of making it more performant, the loss network is here defined as a pre-trained network for image classification. More specifically, they use the 16-layer VGG network~\ref{vgg} pretrained on the ImageNet dataset~\ref{image-net}. 
+    What propose \cite{sr} is to try and make the images have similar feature representations, instead of forcing a pixel-per-pixel match. To do so and with the intention of making it more performant, the loss network is here defined as a pre-trained network for image classification. More specifically, they use the 16-layer VGG network \citep{vgg} pretrained on the ImageNet dataset \citep{image-net}.
 
-        Now to compute the feature reconstruction loss $l^{\phi, i}_{feat}$ in~\ref{SGD} between the output $\hat y$ and the content target $y$ at a layer $i$, we use the mean square Euclidean distance such as equation~ref{loss-formula}.
+    Now to compute the feature reconstruction loss $l^{\phi, i}_{feat}$ in Equation~\ref{eq:sgd} between the output $\hat y$ and the content target $y$ at a layer $i$, we use the mean square Euclidean distance (Equation~\ref{eq:loss-formula}).
 
-        \begin{equation}
-            l^{\phi, i}_{feat}(f_W(x), y_i) = 
-                \frac{1}{C_i H_i W_i}
-                \lVert 
-                    \phi_i (\hat y) - \phi_i (y)
-                \rVert_2^2
-            \label{loss-formula}
-        \end{equation}
+    \begin{equation}
+        l^{\phi, i}_{feat}(f_W(x), y_i) =
+        \frac{1}{C_i H_i W_i}
+        \lVert
+        \phi_i (\hat y) - \phi_i (y)
+        \rVert_2^2
+        \label{eq:loss-formula}
+    \end{equation}
 
-        Note that $C_i$, $H_i$ and $W_i$ are respectively the number of channels, height and width of the input image. And, $\phi_i (x)$ is the feature representation of $x$ at layer $i$ (here, $x$ does not mean the input image, but an arbitrary image).
+    Note that $C_i$, $H_i$ and $W_i$ are respectively the number of channels, height and width of the input image. And, $\phi_i (x)$ is the feature representation of $x$ at layer $i$ (here, $x$ does not mean the input image, but an arbitrary image).
 }
 
 % Implementation
-\label{sec:implementation}
 {
+    \section{Implementation}
+    \label{sec:implementation}
+
     …
 }
 
@@ -149,37 +151,35 @@
     \section{Experiments}
     \label{sec:experiments}
 
-        \subsection{Set up}
-        \label{subsec:setup}
+    \subsection{Setup}
+    \label{subsec:setup}
 
-        In order to conduct experiments, we first need a dataset to train our model. The original paper~\cite{https://doi.org/10.48550/arxiv.1603.08155} used the MS COCO dataset \cite{mscoco} for training, but due to its large size and the associated training time, we had to find a more adequate dataset.
-        
-        As an alternative, we chose DIV2K, a dataset introduced in 2017 by Agustsson et al. in the technical report \textit{"NTIRE 2017 Challenge on Single Image Super-Resolution: Dataset and Study"}~\cite{div2k-ds}. DIV2K is a widely-used dataset for super resolution tasks containing 1000 pairs of low resolution (LR) and high resolution (HR) images. Compared to the MS COCO dataset, it has a reasonable size, making it more feasible for use in this study. More specifically, we only used the HR Images Train Data, which contains 800 images of variable sizes. An extract is visualizable in Fig~\ref{fig:div2k-train-og}.
+    In order to conduct experiments, we first need a dataset to train our model. \cite{sr} used the MS COCO dataset \citep{mscoco} for training, but due to its large size and the associated training time, we had to find a more adequate dataset.
 
-        \bigskip
+    As an alternative, we chose DIV2K, a dataset introduced by \cite{div2k_ds} in the technical report \textit{2017 IEEE Conference on Computer Vision and Pattern Recognition Workshops (CVPRW)}. DIV2K is a widely-used dataset for super resolution tasks containing 1000 pairs of low resolution (LR) and high resolution (HR) images. Compared to the MS COCO dataset, it has a reasonable size, making it more feasible for use in this study. More specifically, we only used the HR Images Train Data, which contains 800 images of variable sizes. An extract is visualizable in Figure~\ref{fig:div2k-train-og}.
 
-        As the model needs a specific type of training data, we did not use the LR images of DIV2K. Indeed, we decided to process the HR images to create our HR-LR pairs. %Furthermore, it allows to store fewer images?
+    \bigskip
 
-        To do so, the original HR images were cropped to $288 \times 288$ to create the HR patches. Then they were preprocessed according to the methods described in ~\cite{https://doi.org/10.48550/arxiv.1603.08155}, to create the LR corresponding patches. It also includes cropping to $288 \times 288$, along with blurring with a Gaussian kernel of width $\sigma = 1.0$, and downsampling with bicubic interpolation.
-        
-        Now that the dataset has been preprocessed (see extract in Fig~\ref{div2k-train-pair}), the model and prepared dataset are now ready to be used for training.
+    As the model needs a specific type of training data, we did not use the LR images of DIV2K. Indeed, we decided to process the HR images to create our HR-LR pairs. %Furthermore, it allows to store fewer images?
 
-        \begin{figure*}[ht]
-            \centering
-            \includegraphics[width=6cm]{images/DIV2K_HR.png}
-            \caption{Visualization of 25 DIV2K HR train images.}
-            \label{fig:div2k-train-og}
-        \end{figure*}
+    To do so, the original HR images were cropped to $288 \times 288$ to create the HR patches. Then they were preprocessed according to the methods described in the paper \citep{sr}, to create the LR corresponding patches. It also includes cropping to $288 \times 288$, along with blurring with a Gaussian kernel of width $\sigma = 1.0$, and downsampling with bicubic interpolation.
 
-        \begin{figure*}[ht]
-            \centering
-            \includegraphics[width=6cm]{images/DIV2K_HRLR.png}
-            \caption{Visualization of 5 pairs of DIV2K HR train images and their LR corresponding images, that underwent our preprocessing.}
-            \label{fig:div2k-train-pair}
-        \end{figure*}
-        % TODO: create such extracts
+    Now that the dataset has been preprocessed (see extract in Figure~\\ref{div2k-train-pair}), the model and prepared dataset are now ready to be used for training.
 
-        
+    \begin{figure*}[ht]
+        \centering
+        \includegraphics[width=6cm]{images/DIV2K_HR.png}
+        \caption{Visualization of 25 DIV2K HR train images.}
+        \label{fig:div2k-train-og}
+    \end{figure*}
+
+    % \begin{figure*}[ht]
+    %     \centering
+    %     \includegraphics[width=6cm]{images/DIV2K_HRLR.png}
+    %     \caption{Visualization of 5 pairs of DIV2K HR train images and their LR corresponding images, that underwent our preprocessing.}
+    %     \label{fig:div2k-train-pair}
+    % \end{figure*}
+
     …
 }
 
@@ -201,8 +201,7 @@
 
 % References
 {
-    \bibliography{refs}
+    \bibliography{references}
 }
 
 \end{document}
-

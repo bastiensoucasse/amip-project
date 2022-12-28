@@ -67,15 +67,21 @@
     \section{Introduction}
     \label{sec:introduction}
 
-    \cite{sr} introduced a model…
+    \cite{sr} introduced neural network models for style transfer and super-resolution, based on the convolutional neural networks (CNNs) for image transformation introduced by \cite{image-transform-network}.
 
-    % Say that we'll only focus on the super resolution part
+    The image transformation models take an image as input and produce a transformed version of this image. They are trained by minimizing a loss function between this produced image and a target image.
 
-    % Super-resolution techniques are used to reconstruct high-resolution images from low-resolution versions. These methods have a wide range of applications, including image processing, computer vision, and medical imaging. In this report, we describe the implementation and evaluation of a super resolution model that utilizes perceptual losses. This approach was introduced in the paper "Perceptual Losses for Real-Time Style Transfer and Super-Resolution" by J. Johnson et al. Perceptual losses are designed to capture the high-level features of images and maintain the perceptual quality of the recovered images.
+    The key upgrade is the use of perceptual loss functions for a feature-wise similarity score--instead of pixel-wise--when checking the similarity between the generated image and the target image. This technique focuses on the similarity between high-level feature components of the images--instead of their pixels-- and therefore maintains the perceptual quality of the generated image.
 
-    % To train the model, we used a dataset of high-resolution images. We implemented the model and used this dataset for training.
+    \bigskip
 
-    % In this report, we present and explain the method used in the model, describe any implementation difficulties that we encountered, and analyze the qualitative and quantitative results of the experiments. We also discuss the energy consumption used during the project and consider other possible impacts. Finally, we suggest possible extensions and future directions for this work.
+    We propose an implementation of the super-resolution model by \cite{sr}. Super-resolution models are used to generate high-resolution (HR) images from low-resolution (LR) versions. These methods apply to image processing, computer vision, and medical imaging.
+
+    To train the model, we use a dataset of HR images and generate the LR version of these images. We use the LR images as input for the model, and HR versions as the ground-truth target.
+
+    \bigskip
+
+    In this report, we present and explain the method used in the model, describe any implementation difficulties that we encountered, and analyze the qualitative and quantitative results of the experiments. We also discuss the energy consumption used during the project and consider other possible impacts. Finally, we suggest possible extensions and future directions for this work.
 }
 
 % Method
@@ -86,22 +92,22 @@
     \begin{figure*}[ht]
         \centering
         \includegraphics[width=\textwidth]{images/model.png}
-        \caption{Overview of the architecture of the proposed model \citep{sr}, focused on the Super-Resolution part.}
+        \caption{Overview of the architecture of the model proposed by \cite{sr}, focusing on super-resolution.}
         \label{fig:model}
     \end{figure*}
 
-    The proposed model illustrated in Figure~\ref{fig:model} consists of two components: an image transformation network $f_W$ and a loss network $\phi$. Given a low resolution input image $x$, it generates an output image that is expected to be similar to the ground truth high resolution image $y$.
+    The proposed model illustrated in Figure~\ref{fig:model} consists of two components: the image transformation network $f_W$ and a loss network $\phi$. Given a low-resolution input image $x$, it generates an output image that is expected to be similar to the ground truth high-resolution image $y$.
 
     The image transformation network is a deep residual convolutional neural network with a set of weights parameter denoted $W$. From input images $x$, it provides output images $\hat y$.
 
-    The loss network defines a feature reconstruction loss $l^\phi_{feat}$. It actually delineates several feature reconstruction loss functions $l^{\phi, i}_{feat}(\hat y, y_i)$ that each measures the difference in content between output image $\hat y$ and content target images $y_i$. Here, $i$ denotes the layer.
-    % I didn't precise "yc" (which makes the difference with ys for style) because we only measure content difference in our case. Could be modified if you think it's necessary.
-    Furthermore, \cite{sr} drew inspiration from several papers such as the one by \cite{gatys} in order to make the most of their feature reconstruction loss. The principle is to use a network pretrained for image classification as a loss network. This way, the beforehand learning of the perceptual and semantic information will facilitate the measure computation of the feature reconstruction loss.
+    The loss network defines a feature reconstruction loss $l^\phi_{feat}$. It delineates several feature reconstruction loss functions $l^{\phi, i}_{feat}(\hat y, y_i)$ that each measure the difference in content between output image $\hat y$ and content target images $y_i$. Here, $i$ denotes the layer.
+    % I didn't precise "yc" (which makes the difference with "ys" for style transfer) because we only measure the content difference in our case. It could be modified if you think it's necessary.
+    Furthermore, \cite{sr} drew inspiration from several papers such as the one by \cite{gatys} in order to make the most of their feature reconstruction loss. The principle is to use a network pre-trained for image classification as a loss network. This way, the beforehand learning of the perceptual and semantic information will facilitate the measure computation of the feature reconstruction loss.
 
     \bigskip
 
     Gathering both components, the image transformation network adjusts its weights $W$ by minimizing the combination of those loss functions, using stochastic gradient descent (Equation~\ref{eq:sgd}). Note that the formula given in the paper \citep{sr} mentions a “weighted combination of loss functions” but does not provide more information about the aforementioned weights. As a consequence, we decided to set them all to 1.
-    %--it only uses small batch of data to compute the update step at each iteration instead of the average of the gradients in a classic gradient descent.
+    % It only uses a small batch of data to compute the update step at each iteration instead of the average of the gradients in classic gradient descent.
 
     \begin{equation}
         W^* =
@@ -113,16 +119,18 @@
     \end{equation}
 
     \subsection{Image Transfomation Network}
-    \label{subsec:image-transform-net}
+    \label{subsec:image-transformation-network}
 
-    % As mentioned previously, the image transformation network is a deep residual convolutional neural network. That is, it includes residual blocks that prevent vanishing gradient issues--when the gradients of the parameters become very small, hindering the ability of the network to learn and improve.
+    As mentioned previously, the image transformation network is a deep residual convolutional neural network. I.e., it includes residual blocks that prevent vanishing gradient issues--when the gradients of the parameters become very small, hindering the ability of the network to learn and improve.
 
-    …
+    \bigskip
+
+    […]
 
     \subsection{Loss Network}
-    \label{subsec:loss-net}
+    \label{subsec:loss-network}
 
-    What propose \cite{sr} is to try and make the images have similar feature representations, instead of forcing a pixel-per-pixel match. To do so and with the intention of making it more performant, the loss network is here defined as a pre-trained network for image classification. More specifically, they use the 16-layer VGG network \citep{vgg} pretrained on the ImageNet dataset \citep{image-net}.
+    What propose \cite{sr} is to try and make the images have similar feature representations, instead of forcing a pixel-per-pixel match. To do so and to make it more performant, the loss network is here defined as a pre-trained network for image classification. More specifically, they use the 16-layer VGG network \citep{vgg} pre-trained on the ImageNet dataset \citep{image-net}.
 
     Now to compute the feature reconstruction loss $l^{\phi, i}_{feat}$ in Equation~\ref{eq:sgd} between the output $\hat y$ and the content target $y$ at a layer $i$, we use the mean square Euclidean distance (Equation~\ref{eq:loss-formula}).
 
@@ -135,7 +143,7 @@
         \label{eq:loss-formula}
     \end{equation}
 
-    Note that $C_i$, $H_i$ and $W_i$ are respectively the number of channels, height and width of the input image. And, $\phi_i (x)$ is the feature representation of $x$ at layer $i$ (here, $x$ does not mean the input image, but an arbitrary image).
+    Note that $C_i$, $H_i$, and $W_i$ are respectively the number of channels, height, and width of the input image. And, $\phi_i (x)$ is the feature representation of $x$ at layer $i$ (here, $x$ does not mean the input image, but an arbitrary image).
 }
 
 % Implementation
@@ -143,7 +151,7 @@
     \section{Implementation}
     \label{sec:implementation}
 
-    …
+    […]
 }
 
 % Experiments
@@ -154,33 +162,36 @@
     \subsection{Setup}
     \label{subsec:setup}
 
-    In order to conduct experiments, we first need a dataset to train our model. \cite{sr} used the MS COCO dataset \citep{mscoco} for training, but due to its large size and the associated training time, we had to find a more adequate dataset.
-
-    As an alternative, we chose DIV2K, a dataset introduced by \cite{div2k_ds} in the technical report \textit{2017 IEEE Conference on Computer Vision and Pattern Recognition Workshops (CVPRW)}. DIV2K is a widely-used dataset for super resolution tasks containing 1000 pairs of low resolution (LR) and high resolution (HR) images. Compared to the MS COCO dataset, it has a reasonable size, making it more feasible for use in this study. More specifically, we only used the HR Images Train Data, which contains 800 images of variable sizes. An extract is visualizable in Figure~\ref{fig:div2k-train-og}.
-
-    \bigskip
-
-    As the model needs a specific type of training data, we did not use the LR images of DIV2K. Indeed, we decided to process the HR images to create our HR-LR pairs. %Furthermore, it allows to store fewer images?
-
-    To do so, the original HR images were cropped to $288 \times 288$ to create the HR patches. Then they were preprocessed according to the methods described in the paper \citep{sr}, to create the LR corresponding patches. It also includes cropping to $288 \times 288$, along with blurring with a Gaussian kernel of width $\sigma = 1.0$, and downsampling with bicubic interpolation.
-
-    Now that the dataset has been preprocessed (see extract in Figure~\\ref{div2k-train-pair}), the model and prepared dataset are now ready to be used for training.
-
     \begin{figure*}[ht]
         \centering
-        \includegraphics[width=6cm]{images/DIV2K_HR.png}
+        \includegraphics[width=\textwidth]{images/DIV2K_HR.png}
         \caption{Visualization of 25 DIV2K HR train images.}
         \label{fig:div2k-train-og}
     \end{figure*}
 
-    % \begin{figure*}[ht]
-    %     \centering
-    %     \includegraphics[width=6cm]{images/DIV2K_HRLR.png}
-    %     \caption{Visualization of 5 pairs of DIV2K HR train images and their LR corresponding images, that underwent our preprocessing.}
-    %     \label{fig:div2k-train-pair}
-    % \end{figure*}
+    \begin{figure*}[ht]
+        \centering
+        \includegraphics[width=0.6 \textwidth]{images/DIV2K_HRLR.png}
+        \caption{Visualization of 4 pairs of DIV2K HR train images (right) and their LR corresponding images (left), that underwent our pre-processing.}
+        \label{fig:div2k-train-pair}
+    \end{figure*}
 
-    …
+    In order to conduct experiments, we first need a dataset to train our model. \cite{sr} used the Microsoft Common Objects in Context (MS-COCO) dataset \citep{mscoco} for training, but due to its large size and the associated training time, we had to find a more adequate dataset.
+
+    As an alternative, we chose DIV2K, a dataset introduced by \cite{div2k_ds} in the technical report \textit{2017 IEEE Conference on Computer Vision and Pattern Recognition Workshops (CVPRW)}. DIV2K is a widely-used dataset for super-resolution tasks containing 1000 pairs of low-resolution (LR) and high-resolution (HR) images. Compared to the MS-COCO dataset, it has a reasonable size, making it more feasible for use in this study. More specifically, we only used the HR images dedicated to training: 800 images of variable sizes. An extract is visualizable in Figure~\ref{fig:div2k-train-og}.
+
+    \bigskip
+
+    As the model needs a specific type of training data, we did not use the LR images of DIV2K. Instead, we decided to process directly the HR images to create our custom HR-LR pairs of images.
+    % Furthermore, it allows the storage of fewer images.
+
+    To do so, the original HR images are cropped to $288 \times 288$ to create the HR patches. Then they are pre-processed according to the methods described in the paper \citep{sr}, to create the corresponding LR patches. It consists in blurring the cropped image with a Gaussian kernel of width $\sigma = 1.0$, and downsampling the result with bicubic interpolation.
+
+    Now that the dataset is pre-processed (see extract in Figure~\ref{fig:div2k-train-pair}), the model and its dataset are ready to be used for training.
+
+    \bigskip
+
+    […]
 }
 
 % Environmental Impact
@@ -188,7 +199,7 @@
     \section{Environmental Impact}
     \label{sec:env-impact}
 
-    …
+    […]
 }
 
 % Conclusion
@@ -196,7 +207,7 @@
     \section{Conclusion}
     \label{sec:conclusion}
 
-    …
+    […]
 }
 
 % References

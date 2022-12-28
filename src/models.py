@@ -8,12 +8,17 @@ class SuperResolutionLoss(nn.Module):
         super(SuperResolutionLoss, self).__init__()
 
         # Load the pre-trained VGG-16 model
-        vgg16 = models.vgg16(weights=models.VGG16_Weights.DEFAULT)
+        vgg = models.vgg16(weights=models.VGG16_Weights.DEFAULT)
 
-        # Extract the layers of the VGG-16 model that we will use for feature loss computation
-        vgg_layers = list(vgg16.features)[:23]
+        # Set the VGG-16 model to evaluation mode
+        vgg.eval()
 
-        self.vgg_layers = nn.Sequential(*vgg_layers)
+        # Freeze the model's weights to prevent backpropagation (just in case)
+        for param in vgg.parameters():
+            param.requires_grad = False
+
+        # Save the model data
+        self.vgg = vgg
         self.criterion = nn.MSELoss()
         self.use_pixel_loss = use_pixel_loss
 
@@ -45,23 +50,26 @@ class ImageTransformer(nn.Module):
         # Set parameters
         num_channels = 3
         num_filters = 64
-        num_residual_blocks = 16
+        num_residual_blocks = 5
+
+        # Initialize the upample layer
+        self.upsample = nn.Upsample(scale_factor=self.scaling_factor, mode="nearest")
 
         # Initialize the input convolutional layer
-        self.conv1 = nn.Conv2d(in_channels=num_channels, out_channels=num_filters, kernel_size=3, stride=1, padding=1)
+        self.conv1 = nn.Conv2d(in_channels=num_channels, out_channels=num_filters, kernel_size=9, stride=1, padding=1)
 
         # Initialize the residual blocks
         self.residual_blocks = nn.ModuleList([ResidualBlock(num_filters) for _ in range(num_residual_blocks)])
 
         # Initialize the output convolutional layer
-        self.conv2 = nn.Conv2d(in_channels=num_filters, out_channels=num_channels, kernel_size=3, stride=1, padding=1)
+        self.conv2 = nn.Conv2d(in_channels=num_filters, out_channels=num_channels, kernel_size=9, stride=1, padding=1)
 
         # Save scaling factor
         self.scaling_factor = scaling_factor
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # Upsample the data
-        x = nn.Upsample(scale_factor=self.scaling_factor, mode="nearest")(x)
+        # Apply the upsample layer
+        x = self.upsample(x)
 
         # Apply the input convolutional layer
         x = self.conv1(x)

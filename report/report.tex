@@ -1,6 +1,7 @@
 \documentclass{article}
 \usepackage[utf8]{inputenc}
 \usepackage[english]{babel}
+\usepackage[letterpaper, portrait, margin=1in]{geometry}
 \usepackage[authoryear,round]{natbib}
 \usepackage[colorlinks=true,citecolor=teal, linkcolor=Periwinkle,urlcolor=Periwinkle]{hyperref}
 \usepackage[dvipsnames]{xcolor}
@@ -71,7 +72,7 @@
 
     The image transformation models take an image as input and produce a transformed version of this image. They are trained by minimizing a loss function between this produced image and a target image.
 
-    The key upgrade is the use of perceptual loss functions for a feature-wise similarity score--instead of pixel-wise--when checking the similarity between the generated image and the target image. This technique focuses on the similarity between high-level feature components of the images--instead of their pixels-- and therefore maintains the perceptual quality of the generated image.
+    The key upgrade is the use of perceptual loss functions for a feature-wise similarity score---instead of pixel-wise---when checking the similarity between the generated image and the target image. This technique focuses on the similarity between high-level feature components of the images---instead of their pixels---and therefore maintains the perceptual quality of the generated image.
 
     \bigskip
 
@@ -110,36 +111,28 @@
     % It only uses a small batch of data to compute the update step at each iteration instead of the average of the gradients in classic gradient descent.
 
     \begin{equation}
-        W^* =
-        \text{argmin}_W \textbf{E}_{x,y_i}
-        \biggl[
-            \sum_{i=0} l^{\phi, i}_{feat}(f_W(x), y_i)
-            \biggr]
+        W^* = \text{argmin}_W \textbf{E}_{x,y_i} \biggl[ \sum_{i=0} l^{\phi, i}_{feat}(f_W(x), y_i) \biggr]
         \label{eq:sgd}
     \end{equation}
 
     \subsection{Image Transfomation Network}
-    \label{subsec:image-transformation-network}
+    \label{subsec:image-transformation-network-method}
 
-    As mentioned previously, the image transformation network is a deep residual convolutional neural network. I.e., it includes residual blocks that prevent vanishing gradient issues--when the gradients of the parameters become very small, hindering the ability of the network to learn and improve.
+    As mentioned previously, the image transformation network is a deep residual convolutional neural network. That is, it includes residual blocks that prevent vanishing gradient issues---when the gradients of the parameters become very small, hindering the ability of the network to learn and improve.
 
     \bigskip
 
     […]
 
     \subsection{Loss Network}
-    \label{subsec:loss-network}
+    \label{subsec:loss-network-method}
 
     What propose \cite{sr} is to try and make the images have similar feature representations, instead of forcing a pixel-per-pixel match. To do so and to make it more performant, the loss network is here defined as a pre-trained network for image classification. More specifically, they use the 16-layer VGG network \citep{vgg} pre-trained on the ImageNet dataset \citep{image-net}.
 
     Now to compute the feature reconstruction loss $l^{\phi, i}_{feat}$ in Equation~\ref{eq:sgd} between the output $\hat y$ and the content target $y$ at a layer $i$, we use the mean square Euclidean distance (Equation~\ref{eq:loss-formula}).
 
     \begin{equation}
-        l^{\phi, i}_{feat}(f_W(x), y_i) =
-        \frac{1}{C_i H_i W_i}
-        \lVert
-        \phi_i (\hat y) - \phi_i (y)
-        \rVert_2^2
+        l^{\phi, i}_{feat}(f_W(x), y_i) = \frac{1}{C_i H_i W_i} \lVert \phi_i (\hat y) - \phi_i (y) \rVert_2^2
         \label{eq:loss-formula}
     \end{equation}
 
@@ -151,7 +144,36 @@
     \section{Implementation}
     \label{sec:implementation}
 
+    \subsection{Image Transformation Network}
+    \label{subsec:image-transformation-network-implementation}
+
+    First of all, the super-resolution model was implemented following the original paper \citep{sr}. The model is based on the image transformation model class defined by \cite{image-transform-network}.
+
+    \bigskip
+
+    Before all, a simple upsampling layer has been added to create a larger image from the input one according to the upsampling factor of the architecture—it is either 4 or 8.
+
+    The model is then constructed with input and output convolutional layers with a kernel size of 9. Between them, 5 successive residual blocks \citep{residual} are integrated.
+
+    Each residual block is composed of two convolution layers with a kernel size of 3. The first one is activated with the ReLU function. Finally, the block's initial input (before the convolutional layers) is added to the output of the block---this is the residual part.
+
+    \bigskip
+
     […]
+
+    \subsection{Loss Network}
+    \label{subsec:loss-network-implementation}
+
+    As previously mentioned, the loss network is based on VGG-16 \citep{vgg}. We use pre-trained weights on ImageNet \citep{image-net} automatically downloaded from the PyTorch website. This VGG-16 instance is frozen and set to evaluation mode.
+
+    \bigskip
+
+    When called with generated and output images, the model retrieves the features from the two images. It can then compute the sum of the mean squared Euclidian distances (MSEs). This sum is the actual loss between the two images, used for backpropagation in the image transformation model.
+
+    \subsection{Suggested Optimization}
+    \label{subsec:suggested-optimization}
+
+    The goal of using the feature loss instead of the pixel-wise MSE loss was to compute the perceptual similarity score instead of the difference between each pixel, as previously established. But we wondered what could be the result when combining such a perceptual loss and the original pixel loss, by summing the two of them. We implemented a simple option to activate this potential optimization. The results will be put in comparison in Section~\ref{sec:experiments}.
 }
 
 % Experiments
@@ -162,23 +184,16 @@
     \subsection{Setup}
     \label{subsec:setup}
 
+    In order to conduct experiments, we first need a dataset to train our model. \cite{sr} used the Microsoft Common Objects in Context (MS-COCO) dataset \citep{mscoco} for training, but due to its large size and the associated training time, we had to find a more adequate dataset.
+
+    As an alternative, we chose DIV2K, a dataset introduced by \cite{div2k_ds} in the technical report \textit{2017 IEEE Conference on Computer Vision and Pattern Recognition Workshops (CVPRW)}. DIV2K is a widely-used dataset for super-resolution tasks containing 1000 pairs of low-resolution (LR) and high-resolution (HR) images. Compared to the MS-COCO dataset, it has a reasonable size, making it more feasible for use in this study. More specifically, we only used the HR images dedicated to training: 800 images of variable sizes. An extract is visualizable in Figure~\ref{fig:div2k-train-og}.
+
     \begin{figure*}[ht]
         \centering
         \includegraphics[width=\textwidth]{images/DIV2K_HR.png}
         \caption{Visualization of 25 DIV2K HR train images.}
         \label{fig:div2k-train-og}
     \end{figure*}
-
-    \begin{figure*}[ht]
-        \centering
-        \includegraphics[width=0.6 \textwidth]{images/DIV2K_HRLR.png}
-        \caption{Visualization of 4 pairs of DIV2K HR train images (right) and their LR corresponding images (left), that underwent our pre-processing.}
-        \label{fig:div2k-train-pair}
-    \end{figure*}
-
-    In order to conduct experiments, we first need a dataset to train our model. \cite{sr} used the Microsoft Common Objects in Context (MS-COCO) dataset \citep{mscoco} for training, but due to its large size and the associated training time, we had to find a more adequate dataset.
-
-    As an alternative, we chose DIV2K, a dataset introduced by \cite{div2k_ds} in the technical report \textit{2017 IEEE Conference on Computer Vision and Pattern Recognition Workshops (CVPRW)}. DIV2K is a widely-used dataset for super-resolution tasks containing 1000 pairs of low-resolution (LR) and high-resolution (HR) images. Compared to the MS-COCO dataset, it has a reasonable size, making it more feasible for use in this study. More specifically, we only used the HR images dedicated to training: 800 images of variable sizes. An extract is visualizable in Figure~\ref{fig:div2k-train-og}.
 
     \bigskip
 
@@ -189,7 +204,20 @@
 
     Now that the dataset is pre-processed (see extract in Figure~\ref{fig:div2k-train-pair}), the model and its dataset are ready to be used for training.
 
-    \bigskip
+    \begin{figure*}[p]
+        \centering
+        \includegraphics[height=0.9\textheight]{images/DIV2K_HRLR.png}
+        \caption{Visualization of 4 pairs of DIV2K HR train images (right) and their LR corresponding images (left), that underwent our pre-processing.}
+        \label{fig:div2k-train-pair}
+    \end{figure*}
+
+    \subsection{Training}
+    \label{subsec:training}
+
+    […]
+
+    \subsection{Testing}
+    \label{subsec:testing}
 
     […]
 }

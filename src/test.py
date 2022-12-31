@@ -10,6 +10,8 @@ from torchvision.transforms.functional import gaussian_blur
 from models import ImageTransformer
 from environment import OUTPUT_DIR
 
+import numpy as np
+
 
 def sr_test(name: str, scaling_factor: int, input: str) -> "tuple[Image.Image, Image.Image]":
     """
@@ -29,31 +31,43 @@ def sr_test(name: str, scaling_factor: int, input: str) -> "tuple[Image.Image, I
             device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
         print(f"Device: {device.type}")
 
+        IMAGENET_MEAN = (0.485, 0.456, 0.406)
+        IMAGENET_STD = (0.229, 0.224, 0.225)
+
         # Set up the data pre-processing
         pre_transform = transforms.Compose([
             transforms.ToTensor(),
-            # transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+            # transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD)
         ])
 
         # Set up the data post-processing
         post_transform = transforms.Compose([
             # transforms.Normalize(mean=[-0.485, -0.456, -0.406], std=[-0.229, -0.224, -0.225]),
+            transforms.Normalize(mean=[-mean/std for mean, std in zip(IMAGENET_MEAN, IMAGENET_STD)],
+                std=[1/std for std in IMAGENET_STD]),
+            transforms.ToPILImage()
+        ])
+
+        post_transform1 = transforms.Compose([
             transforms.ToPILImage()
         ])
 
         # Load the image transformer model
         image_transformer = ImageTransformer(scaling_factor).to(device)
+
         image_transformer.load_state_dict(torch.load(f"models/{name}.pth"))
         image_transformer.eval()
 
         # Open the input image
-        lr_img = Image.open(input).convert("RGB")
+        hr_img = Image.open(input).convert("RGB")
 
         # Pre-process the input image
-        lr_img = pre_transform(lr_img)
+        hr_img = pre_transform(hr_img)
 
         # Generate the low-resolution image by blurring and downsampling the high-resolution image
-        lr_img = gaussian_blur(lr_img, 3, 1)
+        lr_img = hr_img.clone()
+        lr_img = gaussian_blur(hr_img, 3, 1)
         lr_img = avg_pool2d(lr_img, kernel_size=scaling_factor, stride=scaling_factor)
 
         # Move data to the device
@@ -68,7 +82,7 @@ def sr_test(name: str, scaling_factor: int, input: str) -> "tuple[Image.Image, I
 
         # Post-process the images
         lr_img = post_transform(lr_img)
-        gen_img = post_transform(gen_img)
+        gen_img = post_transform1(gen_img)
 
         return lr_img, gen_img
 

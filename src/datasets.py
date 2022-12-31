@@ -66,10 +66,12 @@ class SuperResolutionDataset(torchvision.datasets.VisionDataset):
         hr_img = hr_img.crop((left, top, right, bottom))
 
         # Apply the transform to the high-resolution image, if specified
+
         if self.transform is not None:
             hr_img = self.transform(hr_img)
         else:
-            hr_img = transforms.ToTensor()(hr_img)
+            # hr_img = transforms.ToTensor()(hr_img)
+            hr_img =  transform1(hr_img)
 
         # Generate the low-resolution image by blurring and downsampling the high-resolution image
         lr_img = hr_img.clone()

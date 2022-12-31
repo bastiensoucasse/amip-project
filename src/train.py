@@ -37,6 +37,8 @@ def sr_train(name: str, scaling_factor: int, use_pixel_loss: bool = False, num_e
 
     # Load the custom super resolution dataset and apply the pre-prcessing
     sr_dataset = SuperResolutionDataset(DATA_DIR, scaling_factor, transform=transform)
+    # sr_dataset = SuperResolutionDataset(DATA_DIR, scaling_factor)
+
 
     # Define the custom super resolution data loader
     sr_data = DataLoader(sr_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=4)
@@ -52,6 +54,8 @@ def sr_train(name: str, scaling_factor: int, use_pixel_loss: bool = False, num_e
 
     # Start the training
     training_time = time.time()
+
+    best_loss = 1e6
 
     # Iterate over the number of epochs
     for epoch in range(num_epochs):
@@ -84,6 +88,12 @@ def sr_train(name: str, scaling_factor: int, use_pixel_loss: bool = False, num_e
         # Print the epoch summary
         print(f"{epoch_time:.2f}s - loss: {loss.item():.4f}")
 
+        if best_loss > loss.item():
+            Path(MODELS_DIR).mkdir(parents=True, exist_ok=True)
+            torch.save(image_transformer.state_dict(), f"{MODELS_DIR}/{name}.pth")
+            best_loss = loss.item()
+
+
     # Compute the training time
     training_time = time.time() - training_time
 
@@ -91,9 +101,8 @@ def sr_train(name: str, scaling_factor: int, use_pixel_loss: bool = False, num_e
     print(f"Trainig done in {training_time:.2f}s.")
 
     # Save the trained model
-    Path(MODELS_DIR).mkdir(parents=True, exist_ok=True)
-    torch.save(image_transformer.state_dict(), f"{MODELS_DIR}/{name}.pth")
-    print(f"Super resolution model \"{name}\" saved")
+
+    print(f"Super resolution model \"{name}\" saved with best_loss: {best_loss}")
 
 
 if __name__ == "__main__":

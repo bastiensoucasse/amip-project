@@ -2,17 +2,45 @@ import torch
 import torch.nn as nn
 import torchvision.models as models
 
+import copy
+
 
 class SuperResolutionLoss(nn.Module):
     def __init__(self, use_pixel_loss: bool = False) -> None:
         super(SuperResolutionLoss, self).__init__()
 
         # Load the pre-trained VGG-16 model
-        vgg = models.vgg16(weights=models.VGG16_Weights.DEFAULT)
+        vgg = models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1).features
 
-        # Set the VGG-16 model to evaluation mode
+        # # Set the VGG-16 model to evaluation mode
+        # vgg.eval()
+
+        vgg = copy.deepcopy(vgg)
+
+        model = nn.Sequential()
+        i = 0
+        for layer in list(vgg):
+            
+            if i > 8:
+                break
+            if isinstance(layer, nn.Conv2d):
+                name = "conv_" + str(i)
+                model.add_module(name, layer)
+
+            if isinstance(layer, nn.ReLU):
+                name = "relu_" + str(i)
+                model.add_module(name, layer)
+
+            if isinstance(layer, nn.MaxPool2d):
+                name = "pool_" + str(i)
+                # model.add_module(name, layer)
+                avgpool = nn.AvgPool2d(kernel_size=layer.kernel_size, stride=layer.stride, padding=layer.padding)
+                model.add_module(name, avgpool)
+            i += 1
+
+
+        vgg = model
         vgg.eval()
-
         # Freeze the model's weights to prevent backpropagation (just in case)
         for param in vgg.parameters():
             param.requires_grad = False
@@ -24,8 +52,8 @@ class SuperResolutionLoss(nn.Module):
 
     def forward(self, gen_img: torch.Tensor, hr_img: torch.Tensor) -> nn.MSELoss:
         # Extract the feature maps from the VGG-16 model for the high resolution reference image and the generated image
-        gen_features = self.vgg_layers(gen_img)
-        hr_features = self.vgg_layers(hr_img)
+        gen_features = self.vgg(gen_img)
+        hr_features = self.vgg(hr_img)
 
         # Compute the MSE between the feature maps as the feature loss
         feature_loss = 0
@@ -50,37 +78,83 @@ class ImageTransformer(nn.Module):
         # Set parameters
         num_channels = 3
         num_filters = 64
-        num_residual_blocks = 5
-
-        # Initialize the upample layer
-        self.upsample = nn.Upsample(scale_factor=self.scaling_factor, mode="nearest")
-
-        # Initialize the input convolutional layer
-        self.conv1 = nn.Conv2d(in_channels=num_channels, out_channels=num_filters, kernel_size=9, stride=1, padding=1)
-
-        # Initialize the residual blocks
-        self.residual_blocks = nn.ModuleList([ResidualBlock(num_filters) for _ in range(num_residual_blocks)])
-
-        # Initialize the output convolutional layer
-        self.conv2 = nn.Conv2d(in_channels=num_filters, out_channels=num_channels, kernel_size=9, stride=1, padding=1)
+        num_residual_blocks = 4
 
         # Save scaling factor
         self.scaling_factor = scaling_factor
 
+        # Initialize the upsample layer
+        self.reflection_pad = nn.ReflectionPad2d(1)
+        self.upsample = nn.UpsamplingNearest2d(scale_factor=2)
+        self.batch_norm64 = nn.BatchNorm2d(num_filters)
+
+        # Initialize the input convolutional layer
+        self.conv_in = nn.Conv2d(in_channels=num_channels, out_channels=num_filters, kernel_size=9, stride=1, padding=4)
+
+        # Initialize the residual blocks
+        self.residual_blocks = nn.ModuleList([ResidualBlock(num_filters) for _ in range(num_residual_blocks)])
+
+        # Initialize the middle convolutional layer
+        self.conv_middle = nn.Conv2d(in_channels=num_filters, out_channels=num_filters, kernel_size=3, stride=1, padding=0)
+        self.conv_middle1 = nn.ConvTranspose2d(in_channels=num_filters, out_channels=num_filters, kernel_size=4, stride=2, padding=1)
+
+        # Initialize the output convolutional layer
+        self.conv_out = nn.Conv2d(in_channels=num_filters, out_channels=num_channels, kernel_size=9, stride=1, padding=4)
+
+        # Initialize activation functions
+        self.relu = nn.ReLU()
+        self.tanh = nn.Tanh()
+
+
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # Apply the upsample layer
-        x = self.upsample(x)
+        # # Apply the upsample layer
+        # x = self.upsample(x)
 
         # Apply the input convolutional layer
-        x = self.conv1(x)
+        # print("in " + str(x.shape))
+        x = self.relu(self.batch_norm64(self.conv_in(x)))
+        # print("conv_in " + str(x.shape))
+        
 
         # Apply the residual blocks
         for residual_block in self.residual_blocks:
             x = residual_block(x)
 
-        # Apply the output convolutional layer
-        x = self.conv2(x)
+        # print("residual_blocks " + str(x.shape))
+        # Apply the set of middle convolutional layers
+        if self.scaling_factor == 4:
+            x = self.relu(self.batch_norm64(self.conv_middle(self.reflection_pad(self.upsample(x)))))
+            # print("middle1 " + str(x.shape))
+            x = self.relu(self.batch_norm64(self.conv_middle(self.reflection_pad(self.upsample(x)))))
+        elif self.scaling_factor == 8:
+            x = self.relu(self.batch_norm64(self.conv_middle(self.reflection_pad(self.upsample(x)))))
+            # print("middle1 " + str(x.shape))
+            x = self.relu(self.batch_norm64(self.conv_middle(self.reflection_pad(self.upsample(x)))))
+            # print("middle2 " + str(x.shape))
+            x = self.relu(self.batch_norm64(self.conv_middle(self.reflection_pad(self.upsample(x)))))
 
+        # if self.scaling_factor == 4:
+        #     x = self.relu(self.batch_norm64(self.conv_middle1(x)))
+        #     # print("middle1 " + str(x.shape))
+        #     x = self.relu(self.batch_norm64(self.conv_middle1(x)))
+        # elif self.scaling_factor == 8:
+        #     x = self.relu(self.batch_norm64(self.conv_middle1(x)))
+        #     # print("middle1 " + str(x.shape))
+        #     x = self.relu(self.batch_norm64(self.conv_middle1(x)))
+        #     # print("middle2 " + str(x.shape))
+        #     x = self.relu(self.batch_norm64(self.conv_middle1(x)))
+
+        # print("middle " + str(x.shape))
+        # Apply the output convolutional layer
+        x = self.tanh(self.conv_out(x))
+
+        x = torch.add(x, 1.)
+        x = torch.mul(x, 0.5)
+        # x = torch.mul(x, 255)
+
+        # print("out " + str(x.shape))
+        # print("----------------------")
         return x
 
 
@@ -88,22 +162,19 @@ class ResidualBlock(nn.Module):
     def __init__(self, num_filters: int) -> None:
         super(ResidualBlock, self).__init__()
 
-        # Initialize the convolutional layers
-        self.conv1 = nn.Conv2d(in_channels=num_filters, out_channels=num_filters, kernel_size=3, stride=1, padding=1)
-        self.conv2 = nn.Conv2d(in_channels=num_filters, out_channels=num_filters, kernel_size=3, stride=1, padding=1)
+        # Initialize the convolutional layer
+        self.conv = nn.Conv2d(in_channels=num_filters, out_channels=num_filters, kernel_size=3, stride=1, padding=1)
+        self.batch_norm = nn.BatchNorm2d(num_filters)
+
+        # Initialize activation function
+        self.relu = nn.ReLU()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # Save the input to the residual block
-        residual = x
 
         # Apply the first convolutional layer
-        x = self.conv1(x)
-        x = nn.functional.relu(x)
+        out = self.relu(self.batch_norm(self.conv(x)))
 
         # Apply the second convolutional layer
-        x = self.conv2(x)
+        out = self.batch_norm(self.conv(out))
 
-        # Add the input to the output of the second convolutional layer
-        x += residual
-
-        return x
+        return x + out

@@ -1,6 +1,6 @@
 # AMIP Project
 
-**Members** Iantsa Provost, Lilian Rebiere, Bastien Soucasse, and Alexey Zhukov.
+**Members** Iantsa Provost, Lilian Rebiere-Pouyade, Bastien Soucasse, and Alexey Zhukov.
 
 **Paper** [Perceptual Losses for Real-Time Style Transfer and Super-Resolution](https://arxiv.org/abs/1603.08155).
 
@@ -31,6 +31,4 @@ The actual implementation sources are in the `src` subfolder.
 - `train.py` is the training script implementation file.
 - `utils.py` is an utilitary file.
 
-The `models` subfolder contains the saved models after training (used for testing).
-
-[PyTorch](https://pytorch.org) was used for the implementation.
+[PyTorch](https://pytorch.org) was used for the implementation. The `data` subfolder will contain the image data used for training, i.e., our custom dataset. The `models` subfolder will store the saved models after training (used for testing).

@@ -10,7 +10,6 @@ class SuperResolutionLoss(nn.Module):
         super(SuperResolutionLoss, self).__init__()
 
         vgg = models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1)
-        print(list(vgg.features)[:9])
         self.vgg = nn.Sequential(*list(vgg.features)[:9]).eval()
         self.criterion = nn.MSELoss()
         self.use_pixel_loss = use_pixel_loss
@@ -79,53 +78,29 @@ class ImageTransformer(nn.Module):
 
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # # Apply the upsample layer
-        # x = self.upsample(x)
 
         # Apply the input convolutional layer
-        # print("in " + str(x.shape))
-        x = self.relu(self.batch_norm64(self.conv_in(x)))
-        # print("conv_in " + str(x.shape))
-        
+        x = self.relu(self.batch_norm64(self.conv_in(x)))        
 
         # Apply the residual blocks
         for residual_block in self.residual_blocks:
             x = residual_block(x)
         
 
-        # print("residual_blocks " + str(x.shape))
-        # Apply the set of middle convolutional layers
-        # if self.scaling_factor == 4:
-        #     x = self.relu(self.batch_norm64(self.conv_middle(self.reflection_pad(self.upsample(x)))))
-        #     # print("middle1 " + str(x.shape))
-        #     x = self.relu(self.batch_norm64(self.conv_middle(self.reflection_pad(self.upsample(x)))))
-        # elif self.scaling_factor == 8:
-        #     x = self.relu(self.batch_norm64(self.conv_middle(self.reflection_pad(self.upsample(x)))))
-        #     # print("middle1 " + str(x.shape))
-        #     x = self.relu(self.batch_norm64(self.conv_middle(self.reflection_pad(self.upsample(x)))))
-        #     # print("middle2 " + str(x.shape))
-        #     x = self.relu(self.batch_norm64(self.conv_middle(self.reflection_pad(self.upsample(x)))))
-
         if self.scaling_factor == 4:
             x = self.relu(self.batch_norm64(self.conv_middle1(x)))
-            # print("middle1 " + str(x.shape))
             x = self.relu(self.batch_norm64(self.conv_middle1(x)))
         elif self.scaling_factor == 8:
             x = self.relu(self.batch_norm64(self.conv_middle1(x)))
-            # print("middle1 " + str(x.shape))
             x = self.relu(self.batch_norm64(self.conv_middle1(x)))
-            # print("middle2 " + str(x.shape))
             x = self.relu(self.batch_norm64(self.conv_middle1(x)))
 
-        # print("middle " + str(x.shape))
         # Apply the output convolutional layer
         x = self.tanh(self.conv_out(x))
 
         x = torch.add(x, 1.)
         x = torch.mul(x, 0.5)
 
-        # print("out " + str(x.shape))
-        # print("----------------------")
         return x
 
 

@@ -82,7 +82,7 @@ def sr_test(name: str, scaling_factor: int, input: str) -> "tuple[Image.Image, I
 
         # Post-process the images
         lr_img = post_transform(lr_img)
-        gen_img = post_transform(gen_img)
+        gen_img = post_transform1(gen_img)
 
         return lr_img, gen_img
 

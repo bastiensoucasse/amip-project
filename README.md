@@ -6,7 +6,7 @@
 
 **Remotes** [GitHub](https://github.com/bastiensoucasse/amip-minimal), [GitLab (CREMI, Université de Bordeaux)](https://gitlab.emi.u-bordeaux.fr/bsoucasse/amip-project)
 
-### Report
+## Report
 
 The report can be found in the `report` subfolder, containing the latest compiled PDF and the sources.
 

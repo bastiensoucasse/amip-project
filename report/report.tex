@@ -1,6 +1,7 @@
 \documentclass{article}
 \usepackage[utf8]{inputenc}
 \usepackage[english]{babel}
+\usepackage{float}
 \usepackage[letterpaper, portrait, margin=1in]{geometry}
 \usepackage[authoryear,round]{natbib}
 \usepackage[colorlinks=true,citecolor=teal, linkcolor=Periwinkle,urlcolor=Periwinkle]{hyperref}
@@ -119,11 +120,11 @@
     \label{subsec:image-transformation-network-method}
 
     As mentioned previously, the image transformation network is a deep residual convolutional neural network. That is, it includes residual blocks that prevent vanishing gradient issues---when the gradients of the parameters become very small, hindering the ability of the network to learn and improve.
-
+    
     Residual blocks in the model are defined using the architecture design of \cite{rb}, with the exception of the deletion of the last activation ReLU. 
-      
-     This network takes as input a low resolution image of shape $3 \times 288/f \times 288/f$, and resulting an output image of shape $3 \times 288 \times 288$, which is a high-resolution version of the input image.
 
+    This network takes as input a low resolution image of shape $3 \times 288/f \times 288/f$, and resulting an output image of shape $3 \times 288 \times 288$, which is a high-resolution version of the input image.
+    
     \subsection{Loss Network}
     \label{subsec:loss-network-method}
 
@@ -149,23 +150,15 @@
 
     First of all, the super-resolution model was implemented following the original paper \citep{sr}. The model is based on the image transformation model class defined by \cite{image-transform-network}.
 
-    \bigskip
-
-    Before all, a simple upsampling layer has been added to create a larger image from the input one according to the upsampling factor of the architecture—it is either 4 or 8.
-
-    First of all, the model is then constructed with an input convolutional layer with a kernel size of 9, followed by four successive residual blocks \citep{residual}.
+    Moreover, a simple upsampling layer has been added to create a larger image from the input one according to the upsampling factor of the architecture—it is either 4 or 8.
+    The model is then constructed with an input convolutional layer with a kernel size of 9, followed by four successive residual blocks \citep{residual}.
   
 
-    Each residual block is composed of two convolution layers with a kernel size of 3. The first one is activated with the ReLU function. Finally, the block's initial input (before the convolutional layers) is added to the output of the block---this is the residual part.
+    In addition, Each residual block is composed of two convolution layers with a kernel size of 3. The first one is activated with the ReLU function. Finally, the block's initial input (before the convolutional layers) is added to the output of the block---this is the residual part.
 
-    After that, just before the output convolutional layer, with a kernel of size 9, there are other convolutional layers. The number of these convolutional layers, with a kernel of size 4 and, in our case a stride of 1, depends on the upsampling factor. Indeed,  two layers are used if the upsampling factor is set to 4, whereas three layers are set up if scaling factor is set to 8.
+    After that, just before the output convolutional layer, with a kernel of size 9, there are other convolutional layers. The number of these convolutional layers, with a kernel, of size 4 in our case, instead of 3, and a stride of 1/2, depends on the upsampling factor. Indeed,  two layers are used if the upsampling factor is set to 4, whereas three layers are set up if upsampling factor is set to 8.
 
-    Finally, on both layers of the network, each convolutional layers have the same number of filters with is 64, followed by spatial batch normalization and a ReLU non-linearity, excepted on the output layer, without batch normalization, and which uses a scaled tanh to respect the pixels range.
-
-    \bigskip
-
-    […]
-
+    Finally, on both layers of the network, each of the convolutional layers have the same number of filters with is 64, followed by spatial batch normalization and a ReLU non-linearity, excepted on the output layer, without batch normalization, and which uses a scaled Tanh to respect the pixels range.
     \subsection{Loss Network}
     \label{subsec:loss-network-implementation}
 
@@ -219,15 +212,58 @@
     \subsection{Training}
     \label{subsec:training}
 
-    To train our model, we have defined some hyper parameters according to the original paper. Indeed, we use the Adam optimizer, defined the learning rate to $1 \times 10^{-3}$ and also a batch size of 4.
-    Concerning the loss function, it is determined as detailed in the section ~\ref{subsec:loss-network-implementation}.
+    To train our model, we have defined some hyperparameters according to the original paper. Indeed, we use the Adam optimizer, defined the learning rate to $1 \times 10^{-3}$ and also a batch size of 4.
+    Concerning the loss function, it is determined as detailed in the section~\ref{subsec:loss-network-implementation}.
     
     Finally, we experimented different values to determine, in our opinion, what is the best number of epochs to get the best results in the test phase. In our case, and in view of the various results, we have thus defined the number of epochs as 5.
-
+    
     \subsection{Testing}
     \label{subsec:testing}
 
-    […]
+    To test our model, we focus on his ability to generate high resolution images from the low resolution images created previously. From this generation, one example here, we can therefore compare and discuss the differences between the generated image and the original high resolution one. Moreover, as mentioned above, we also compare these results obtained with those using the pixel loss. 
+    
+    Firstly, we begin by showing our results, with different original images, with an upsampling factor of 4.
+
+     \begin{figure}[ht]
+        \centering
+        \includegraphics[width=0.5\textheight]{images/scaling_factor-4_without_pixel_loss.png}
+        \caption{Visualization of a generated image (at the center) without using pixel loss, from the low resolution image (on the left), compared to the high resolution image (on the right). Upsampling factor of 4.}
+        \label{fig:scaling_factor_4_without_pixel_loss}
+    \end{figure}
+    
+    On this first result in Figure~\ref{fig:scaling_factor_4_without_pixel_loss}, we can observe that, even if the generated image is no longer pixelated, as we can see in the associated low resolution version, the colors of the landscape, and the image in general, have changed. For example, some elements are strongly marked, like the waterfalls or part of the sky. On the other hand, the image still retains the content of the image.
+    In a second step, we now try the generation using pixel loss based optimization.
+
+    \begin{figure}[ht]
+        \centering
+        \includegraphics[height=0.2\textheight]{images/comparison_using_pixel_loss.png}
+        \caption{Visualization of 2 generated images : the one on the left obtained without pixel loss, and the one on the right, with pixel loss.}
+        \label{fig:comparison_using_pixel_loss}
+    \end{figure}
+
+    With the using of pixel loss, we can notice that the new generated image obtained in Figure~\ref{fig:comparison_using_pixel_loss} is better than the previous. In fact, this one presents colors of the original image and get a little bit closer to the original high resolution image below. However, the image is quite dark and seems rather blurred in relation to the original image.
+    
+     After that, we test and analyze the results with, this time, an upsampling factor of 8. We are going to compare the previous obtained image with an upsampling factor of 4 with this one.
+     
+    \begin{figure}[ht]
+        \centering
+        \includegraphics[height=0.2\textheight]{images/comparison_scaling_factor_without_pixel_loss.png}
+        \caption{Visualization of 2 images generated without pixel loss : the one on the left obtained with upsampling factor 4, and the one on the right, with upsampling factor 8.}
+    \label{fig:comparison_scaling_factor_without_pixel_loss}
+    \end{figure}
+     
+    Compared to the generated image with an upsampling factor of 4, we can observe, in Figure~\ref{fig:comparison_scaling_factor_without_pixel_loss}, that this one, with an upsampling factor of 8, has a lower quality. Indeed, we can hardly make out any details in the image. In this case, we loss more information than the previous reconstruction.
+    
+    Finally, we compared the final generated image, with an upsampling factor of 8, with the one with an upsampling factor of 4, both generated using the pixel loss.
+
+     \begin{figure}[H]
+        \centering
+        \includegraphics[height=0.2\textheight]{images/comparison_scaling_factor_with_pixel_loss.png}
+        \caption{Visualization of 2 images generated with pixel loss : the one on the left obtained with upsampling factor 4, and the one on the right, with upsampling factor 8.}
+    \label{fig:comparison_scaling_factor_with_pixel_loss}
+    \end{figure}
+
+    In this final comparison in Figure~\ref{fig:comparison_scaling_factor_with_pixel_loss}, image on the right is darker than the one on the left. This one is still blurred but, as in the comparison of images generated without using the pixel loss, it is difficult to see details that compose the image.
 }
 
 % Environmental Impact
@@ -235,7 +271,14 @@
     \section{Environmental Impact}
     \label{sec:env-impact}
 
-    […]
+    During the training phase, we have measured the environmental impact of our model. Indeed, as we can see below, in Figure~\ref{fig:impact}, before the launch, we have 15W and 72MiB, during the training, it increases to  126 W and 2715MiB. 
+    
+    \begin{figure}[H]
+        \centering
+        \includegraphics[scale=0.5]{images/impact.png}
+        \caption{W changes during program operation}
+    \label{fig:impact}
+    \end{figure}
 }
 
 % Conclusion
@@ -243,7 +286,13 @@
     \section{Conclusion}
     \label{sec:conclusion}
 
-    […]
+    To conclude, and as we can have discussed in the section~\ref{subsec:testing}, the high resolution images generated by our model are not exactly similar to the original high resolution images. 
+    
+    A first rational explanation is in the fact that we do not use the same database. In our work, we have chosen the DIV2K dataset, because it has a reasonable size compared to MS-COCO dataset used in the original model. The choice of different images can therefore have an impact on the final results. 
+    
+    A second source for these differences may be the definition of weights. In fact, Due to the lack of additional information, we decided to set them all to 1. However, as these weights are adjusted during the training, their initial values may have a consequence in the development of the method. 
+
+    Nevertheless, in terms of the results obtained, we that we obtain a better result by using an upsampling factor of 4 and the pixel loss. In fact, the produced image is darker and has a blurred effect, but is of better quality than the other generated images. Moreover, we can consider that it is the one that comes closest to the original high resolution image.
 }
 
 % References

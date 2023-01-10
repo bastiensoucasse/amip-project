@@ -37,8 +37,8 @@ def sr_test(name: str, scaling_factor: int, input: str) -> "tuple[Image.Image, I
         # Set up the data pre-processing
         pre_transform = transforms.Compose([
             transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-            # transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD)
+            # transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+            transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD)
         ])
 
         # Set up the data post-processing
@@ -82,7 +82,7 @@ def sr_test(name: str, scaling_factor: int, input: str) -> "tuple[Image.Image, I
 
         # Post-process the images
         lr_img = post_transform(lr_img)
-        gen_img = post_transform1(gen_img)
+        gen_img = post_transform(gen_img)
 
         return lr_img, gen_img
 

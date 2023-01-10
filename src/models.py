@@ -9,46 +9,15 @@ class SuperResolutionLoss(nn.Module):
     def __init__(self, use_pixel_loss: bool = False) -> None:
         super(SuperResolutionLoss, self).__init__()
 
-        # Load the pre-trained VGG-16 model
-        vgg = models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1).features
-
-        # # Set the VGG-16 model to evaluation mode
-        # vgg.eval()
-
-        vgg = copy.deepcopy(vgg)
-
-        model = nn.Sequential()
-        i = 0
-        for layer in list(vgg):
-            
-            if i > 8:
-                break
-            if isinstance(layer, nn.Conv2d):
-                name = "conv_" + str(i)
-                model.add_module(name, layer)
-
-            if isinstance(layer, nn.ReLU):
-                name = "relu_" + str(i)
-                model.add_module(name, layer)
-
-            if isinstance(layer, nn.MaxPool2d):
-                name = "pool_" + str(i)
-                # model.add_module(name, layer)
-                avgpool = nn.AvgPool2d(kernel_size=layer.kernel_size, stride=layer.stride, padding=layer.padding)
-                model.add_module(name, avgpool)
-            i += 1
-
-
-        vgg = model
-        vgg.eval()
-        # Freeze the model's weights to prevent backpropagation (just in case)
-        for param in vgg.parameters():
-            param.requires_grad = False
-
-        # Save the model data
-        self.vgg = vgg
+        vgg = models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1)
+        print(list(vgg.features)[:9])
+        self.vgg = nn.Sequential(*list(vgg.features)[:9]).eval()
         self.criterion = nn.MSELoss()
         self.use_pixel_loss = use_pixel_loss
+        for param in self.vgg.parameters():
+            param.requires_grad = False
+
+    
 
     def forward(self, gen_img: torch.Tensor, hr_img: torch.Tensor) -> nn.MSELoss:
         # Extract the feature maps from the VGG-16 model for the high resolution reference image and the generated image
@@ -57,8 +26,9 @@ class SuperResolutionLoss(nn.Module):
 
         # Compute the MSE between the feature maps as the feature loss
         feature_loss = 0
-        for gen_f, hr_f in zip(gen_features, hr_features):
-            feature_loss += self.criterion(gen_f, hr_f)
+        # for gen_f, hr_f in zip(gen_features, hr_features):
+        #     feature_loss += self.criterion(gen_f, hr_f)
+        feature_loss = torch.mean(torch.abs(gen_features - hr_features))
 
         # Return the feature loss if the improvement is not used
         if not self.use_pixel_loss:
@@ -85,7 +55,8 @@ class ImageTransformer(nn.Module):
 
         # Initialize the upsample layer
         self.reflection_pad = nn.ReflectionPad2d(1)
-        self.upsample = nn.UpsamplingNearest2d(scale_factor=2)
+        # self.upsample = nn.UpsamplingNearest2d(scale_factor=self.scaling_factor)
+        self.upsample = nn.Upsample(scale_factor=4, mode='bilinear')
         self.batch_norm64 = nn.BatchNorm2d(num_filters)
 
         # Initialize the input convolutional layer
@@ -120,30 +91,31 @@ class ImageTransformer(nn.Module):
         # Apply the residual blocks
         for residual_block in self.residual_blocks:
             x = residual_block(x)
+        
 
         # print("residual_blocks " + str(x.shape))
         # Apply the set of middle convolutional layers
-        if self.scaling_factor == 4:
-            x = self.relu(self.batch_norm64(self.conv_middle(self.reflection_pad(self.upsample(x)))))
-            # print("middle1 " + str(x.shape))
-            x = self.relu(self.batch_norm64(self.conv_middle(self.reflection_pad(self.upsample(x)))))
-        elif self.scaling_factor == 8:
-            x = self.relu(self.batch_norm64(self.conv_middle(self.reflection_pad(self.upsample(x)))))
-            # print("middle1 " + str(x.shape))
-            x = self.relu(self.batch_norm64(self.conv_middle(self.reflection_pad(self.upsample(x)))))
-            # print("middle2 " + str(x.shape))
-            x = self.relu(self.batch_norm64(self.conv_middle(self.reflection_pad(self.upsample(x)))))
-
         # if self.scaling_factor == 4:
-        #     x = self.relu(self.batch_norm64(self.conv_middle1(x)))
+        #     x = self.relu(self.batch_norm64(self.conv_middle(self.reflection_pad(self.upsample(x)))))
         #     # print("middle1 " + str(x.shape))
-        #     x = self.relu(self.batch_norm64(self.conv_middle1(x)))
+        #     x = self.relu(self.batch_norm64(self.conv_middle(self.reflection_pad(self.upsample(x)))))
         # elif self.scaling_factor == 8:
-        #     x = self.relu(self.batch_norm64(self.conv_middle1(x)))
+        #     x = self.relu(self.batch_norm64(self.conv_middle(self.reflection_pad(self.upsample(x)))))
         #     # print("middle1 " + str(x.shape))
-        #     x = self.relu(self.batch_norm64(self.conv_middle1(x)))
+        #     x = self.relu(self.batch_norm64(self.conv_middle(self.reflection_pad(self.upsample(x)))))
         #     # print("middle2 " + str(x.shape))
-        #     x = self.relu(self.batch_norm64(self.conv_middle1(x)))
+        #     x = self.relu(self.batch_norm64(self.conv_middle(self.reflection_pad(self.upsample(x)))))
+
+        if self.scaling_factor == 4:
+            x = self.relu(self.batch_norm64(self.conv_middle1(x)))
+            # print("middle1 " + str(x.shape))
+            x = self.relu(self.batch_norm64(self.conv_middle1(x)))
+        elif self.scaling_factor == 8:
+            x = self.relu(self.batch_norm64(self.conv_middle1(x)))
+            # print("middle1 " + str(x.shape))
+            x = self.relu(self.batch_norm64(self.conv_middle1(x)))
+            # print("middle2 " + str(x.shape))
+            x = self.relu(self.batch_norm64(self.conv_middle1(x)))
 
         # print("middle " + str(x.shape))
         # Apply the output convolutional layer
@@ -151,7 +123,6 @@ class ImageTransformer(nn.Module):
 
         x = torch.add(x, 1.)
         x = torch.mul(x, 0.5)
-        # x = torch.mul(x, 255)
 
         # print("out " + str(x.shape))
         # print("----------------------")

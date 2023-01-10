@@ -33,7 +33,7 @@
 
             \large
 
-            \textbf{Iantsa~Provost, Lilian~Rebiere, Bastien~Soucasse, and~Alexey~Zhukov}
+            \textbf{Iantsa~Provost, Lilian~Rebiere-Pouyade, Bastien~Soucasse, and~Alexey~Zhukov}
 
             \vfill
 
@@ -120,9 +120,9 @@
 
     As mentioned previously, the image transformation network is a deep residual convolutional neural network. That is, it includes residual blocks that prevent vanishing gradient issues---when the gradients of the parameters become very small, hindering the ability of the network to learn and improve.
 
-    \bigskip
-
-    […]
+    Residual blocks in the model are defined using the architecture design of \cite{rb}, with the exception of the deletion of the last activation ReLU. 
+      
+     This network takes as input a low resolution image of shape $3 \times 288/f \times 288/f$, and resulting an output image of shape $3 \times 288 \times 288$, which is a high-resolution version of the input image.
 
     \subsection{Loss Network}
     \label{subsec:loss-network-method}
@@ -153,9 +153,14 @@
 
     Before all, a simple upsampling layer has been added to create a larger image from the input one according to the upsampling factor of the architecture—it is either 4 or 8.
 
-    The model is then constructed with input and output convolutional layers with a kernel size of 9. Between them, 5 successive residual blocks \citep{residual} are integrated.
+    First of all, the model is then constructed with an input convolutional layer with a kernel size of 9, followed by four successive residual blocks \citep{residual}.
+  
 
     Each residual block is composed of two convolution layers with a kernel size of 3. The first one is activated with the ReLU function. Finally, the block's initial input (before the convolutional layers) is added to the output of the block---this is the residual part.
+
+    After that, just before the output convolutional layer, with a kernel of size 9, there are other convolutional layers. The number of these convolutional layers, with a kernel of size 4 and, in our case a stride of 1, depends on the upsampling factor. Indeed,  two layers are used if the upsampling factor is set to 4, whereas three layers are set up if scaling factor is set to 8.
+
+    Finally, on both layers of the network, each convolutional layers have the same number of filters with is 64, followed by spatial batch normalization and a ReLU non-linearity, excepted on the output layer, without batch normalization, and which uses a scaled tanh to respect the pixels range.
 
     \bigskip
 
@@ -214,7 +219,10 @@
     \subsection{Training}
     \label{subsec:training}
 
-    […]
+    To train our model, we have defined some hyper parameters according to the original paper. Indeed, we use the Adam optimizer, defined the learning rate to $1 \times 10^{-3}$ and also a batch size of 4.
+    Concerning the loss function, it is determined as detailed in the section ~\ref{subsec:loss-network-implementation}.
+    
+    Finally, we experimented different values to determine, in our opinion, what is the best number of epochs to get the best results in the test phase. In our case, and in view of the various results, we have thus defined the number of epochs as 5.
 
     \subsection{Testing}
     \label{subsec:testing}

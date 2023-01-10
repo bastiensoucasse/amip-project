@@ -4,29 +4,33 @@
 
 **Paper** [Perceptual Losses for Real-Time Style Transfer and Super-Resolution](https://arxiv.org/abs/1603.08155).
 
-## Report
+**Remotes** [GitHub](https://github.com/bastiensoucasse/amip-minimal), [GitLab (CREMI, Université de Bordeaux)](https://gitlab.emi.u-bordeaux.fr/bsoucasse/amip-project)
 
-The report is in the `report` subfolder, containing the LaTeX sources to compile. To compile from the sources, you need a LaTeX compiler such as [TeXLive](https://www.tug.org/texlive/).
+### Report
 
-## Code
+The report can be found in the `report` subfolder, containing the latest compiled PDF and the sources.
 
-The actual source code is in the `src` subfolder. [PyTorch](https://pytorch.org) is used for the implementation.
+- `references.bib` is the references source file.
+- `report.pdf` is tha latest compiled report.
+- `report.tex` is the LaTeX main source file.
 
-## Distant Working
+The `images` subfolder contains the images used in the `report.tex` source file.
 
-SSH must be configured (once) to connect to a computer from room 201 or 202. In the file ` /.ssh/config`.
+To compile from the sources, you need a LaTeX compiler such as [TeXLive](https://www.tug.org/texlive).
 
-```
-Host cremi_proxy
-    HostName jaguar.emi.u-bordeaux.fr
-    User <user> # Your CREMI user name.
+## Implementation
 
-Host cremi_dl
-    HostName <computer> # Any computer from room 201 or 202, like `ader`.
-    User <user> # Your CREMI user name.
-    ProxyJump cremi_proxy
-```
+The actual implementation sources are in the `src` subfolder.
 
-Everytime you want to work at distance, you must turn on the computer you use from [the CREMI WOL page](https://services.emi.u-bordeaux.fr/exam-test/?page=wol)—use the Night Work Startup Mode if you work past 10p.m.
+- `datasets.py` is the custom dataset implementation file.
+- `environment.py` is the global parameters and variables file.
+- `models.py` is the Image Transformer Network (and its blocks) and the Loss Network implementation file.
+- `sr_dataset.ipynb` is the custom dataset experiments file.
+- `sr.ipynb` is the model experiments file.
+- `test.py` is the testing script implementation file.
+- `train.py` is the training script implementation file.
+- `utils.py` is an utilitary file.
 
-Then, simply connect from VSCode to your remote SSH Host and open your project folder. Don't forget to enable the environment on VSCode (interpreter at the bottom right) and on the terminal (`source /net/ens/DeepLearning-Pytorch/rtx_3060/bin/activate`).
+The `models` subfolder contains the saved models after training (used for testing).
+
+[PyTorch](https://pytorch.org) was used for the implementation.

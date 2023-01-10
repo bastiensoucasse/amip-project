@@ -265,3 +265,5 @@ TSWLatexianTemp*
 
 # dist
 dist/
+
+!report.pdf
